@@ -1,0 +1,198 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:trusted/core/constants/app_constants.dart';
+import 'package:trusted/features/auth/domain/models/signup_form_model.dart';
+import 'package:trusted/features/auth/domain/models/user_model.dart';
+import 'package:trusted/features/auth/domain/repositories/auth_repository.dart';
+
+/// Auth state
+class AuthState {
+  /// Loading state
+  final bool isLoading;
+  
+  /// Error message
+  final String? errorMessage;
+  
+  /// Current user model
+  final UserModel? user;
+  
+  /// User exists in database
+  final bool userExists;
+  
+  /// Constructor
+  const AuthState({
+    this.isLoading = false,
+    this.errorMessage,
+    this.user,
+    this.userExists = false,
+  });
+
+  /// Creates a copy of this AuthState with the given fields replaced
+  AuthState copyWith({
+    bool? isLoading,
+    String? errorMessage,
+    UserModel? user,
+    bool? userExists,
+  }) {
+    return AuthState(
+      isLoading: isLoading ?? this.isLoading,
+      errorMessage: errorMessage,
+      user: user ?? this.user,
+      userExists: userExists ?? this.userExists,
+    );
+  }
+}
+
+/// Auth notifier to manage authentication state
+class AuthNotifier extends StateNotifier<AuthState> {
+  /// Auth repository
+  final AuthRepository _authRepository;
+
+  /// Constructor
+  AuthNotifier({required AuthRepository authRepository})
+      : _authRepository = authRepository,
+        super(const AuthState());
+
+  /// Get the current authenticated user
+  User? get currentUser => _authRepository.currentUser;
+
+  /// Initialize auth state
+  Future<void> initAuthState() async {
+    state = state.copyWith(isLoading: true);
+    
+    final currentUser = _authRepository.currentUser;
+    if (currentUser != null) {
+      final userData = await _authRepository.getUserData(currentUser.id);
+      state = state.copyWith(
+        isLoading: false,
+        user: userData,
+        userExists: userData != null,
+      );
+    } else {
+      state = state.copyWith(isLoading: false);
+    }
+  }
+
+  /// Sign in with Google
+  Future<void> signInWithGoogle() async {
+    try {
+      state = state.copyWith(isLoading: true, errorMessage: null);
+      
+      final credential = await _authRepository.signInWithGoogle();
+      final userExists = await _authRepository.checkUserExists(credential.user.email!);
+      
+      if (userExists) {
+        final userData = await _authRepository.getUserData(credential.user.id);
+        state = state.copyWith(
+          isLoading: false,
+          user: userData,
+          userExists: true,
+        );
+      } else {
+        state = state.copyWith(
+          isLoading: false,
+          userExists: false,
+        );
+      }
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: e.toString(),
+      );
+    }
+  }
+
+  /// Sign in with email (for admin)
+  Future<void> signInWithEmail(String email, String password) async {
+    try {
+      state = state.copyWith(isLoading: true, errorMessage: null);
+      
+      if (email != AppConstants.adminEmail) {
+        throw 'Only admin can sign in with email';
+      }
+      
+      final credential = await _authRepository.signInWithEmail(email, password);
+      final userData = await _authRepository.getUserData(credential.user.id);
+      
+      state = state.copyWith(
+        isLoading: false,
+        user: userData,
+        userExists: userData != null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: e.toString(),
+      );
+    }
+  }
+
+  /// Sign out
+  Future<void> signOut() async {
+    try {
+      state = state.copyWith(isLoading: true, errorMessage: null);
+      
+      await _authRepository.signOut();
+      
+      state = const AuthState();
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: e.toString(),
+      );
+    }
+  }
+
+  /// Create new user
+  Future<void> createUser(SignupFormModel formData) async {
+    try {
+      state = state.copyWith(isLoading: true, errorMessage: null);
+      
+      final userData = await _authRepository.createUser(formData);
+      
+      state = state.copyWith(
+        isLoading: false,
+        user: userData,
+        userExists: userData != null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: e.toString(),
+      );
+    }
+  }
+
+  /// Update user status
+  Future<void> updateUserStatus(String userId, String status) async {
+    try {
+      state = state.copyWith(isLoading: true, errorMessage: null);
+      
+      final success = await _authRepository.updateUserStatus(userId, status);
+      
+      if (success) {
+        final userData = await _authRepository.getUserData(userId);
+        state = state.copyWith(
+          isLoading: false,
+          user: userData,
+        );
+      } else {
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: 'Failed to update user status',
+        );
+      }
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: e.toString(),
+      );
+    }
+  }
+}
+
+/// Provider for AuthState
+final authStateProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
+  final authRepository = ref.watch(authRepositoryProvider);
+  return AuthNotifier(authRepository: authRepository);
+});
