@@ -25,12 +25,15 @@ void main() async {
   ]);
   
   // Load environment variables
-  await dotenv.load();
+  await dotenv.load(fileName: '.env');
   
   // Initialize Supabase
   await Supabase.initialize(
     url: EnvConfig.supabaseUrl,
     anonKey: EnvConfig.supabaseAnonKey,
+    authOptions: const FlutterAuthClientOptions(
+      authFlowType: AuthFlowType.implicit,
+    ),
     debug: false,
   );
   

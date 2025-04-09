@@ -289,12 +289,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   strokeWidth: 2,
                                 ),
                               )
-                            : const Flexible(
-                                child: Text(
-                                  'تسجيل الدخول باستخدام Google',
-                                  overflow: TextOverflow.ellipsis,
-                                  maxLines: 1,
-                                ),
+                            : const Text(
+                                'تسجيل الدخول باستخدام Google',
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
                               ),
                       ),
                     ],

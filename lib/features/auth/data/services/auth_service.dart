@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -56,13 +57,10 @@ class AuthService {
     GoogleSignIn? googleSignIn,
   }) : _supabaseClient = supabaseClient,
        _googleSignIn = googleSignIn ?? GoogleSignIn(
-         // Use serverClientId instead of clientId for Android
-         serverClientId: Platform.isAndroid 
-             ? EnvConfig.googleClientIdAndroid 
-             : null,
-         clientId: Platform.isIOS
-             ? EnvConfig.googleClientIdIos
-             : null,
+         // Use the web client ID as serverClientId for Android
+         serverClientId: EnvConfig.googleClientIdWeb,
+         // For iOS, use clientId
+         clientId: Platform.isIOS ? EnvConfig.googleClientIdIos : null,
          scopes: ['email', 'profile'],
        );
 
@@ -79,6 +77,9 @@ class AuthService {
   /// Sign in with Google
   Future<UserCredential> signInWithGoogle() async {
     try {
+      // Clear any previous sign-in state
+      await _googleSignIn.signOut();
+      
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       
       if (googleUser == null) {
@@ -88,6 +89,11 @@ class AuthService {
       final GoogleSignInAuthentication googleAuth = 
           await googleUser.authentication;
       
+      if (googleAuth.idToken == null) {
+        throw 'Failed to obtain ID token from Google';
+      }
+      
+      // Use the web client ID for Supabase authentication
       final AuthResponse response = await _supabaseClient.auth.signInWithIdToken(
         provider: OAuthProvider.google,
         idToken: googleAuth.idToken!,
@@ -107,6 +113,13 @@ class AuthService {
       _logger.e('Error signing in with Google: $e');
       rethrow;
     }
+  }
+  
+  /// Generate a random nonce for OAuth security
+  String _generateNonce() {
+    const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    final random = Random.secure();
+    return List.generate(32, (_) => chars[random.nextInt(chars.length)]).join();
   }
 
   /// Sign in with email and password (for admin)

@@ -15,6 +15,14 @@ class EnvConfig {
   /// Google Client ID for iOS from environment
   static String get googleClientIdIos => 
       dotenv.env['GOOGLE_CLIENT_ID_IOS'] ?? '';
+      
+  /// Google Client ID for Web from environment
+  static String get googleClientIdWeb => 
+      dotenv.env['GOOGLE_CLIENT_ID_WEB'] ?? '';
+      
+  /// Authorized redirect URIs for OAuth
+  static String get authorizedRedirectUris => 
+      dotenv.env['Authorized_redirect_URIs'] ?? '';
 
   /// Deep link scheme from environment
   static String get deepLinkScheme => dotenv.env['DEEP_LINK_SCHEME'] ?? '';
