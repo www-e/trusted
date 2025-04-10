@@ -150,4 +150,8 @@ class UserModel {
 
   /// Checks if this user is pending
   bool get isPending => status == AppConstants.statusPending;
+
+  /// Checks if this user is rejected
+  bool get isRejected => status == AppConstants.statusRejected;
+
 }

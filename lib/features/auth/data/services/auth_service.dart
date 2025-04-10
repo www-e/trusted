@@ -164,7 +164,7 @@ class AuthService {
           .from('users')
           .select()
           .eq('id', userId)
-          .single();
+          .maybeSingle();
       
       if (response == null) {
         return null;
@@ -272,6 +272,38 @@ class AuthService {
       )).toList();
     } catch (e) {
       _logger.e('Error getting pending users: $e');
+      return [];
+    }
+  }
+
+  /// Get all users with active status
+  Future<List<UserModel>> getApprovedUsers() async {
+    try {
+      final response = await _supabaseClient
+          .from('users')
+          .select()
+          .or('status.eq.${AppConstants.statusActive},status.eq.${AppConstants.statusRejected}')
+          .order('created_at', ascending: false);
+      
+      return (response as List).map((json) => UserModel(
+        id: json['id'],
+        email: json['email'],
+        name: json['name'],
+        role: json['role'],
+        phoneNumber: json['phone_number'],
+        secondaryPhoneNumber: json['secondary_phone_number'],
+        nickname: json['nickname'],
+        country: json['country'],
+        status: json['status'],
+        businessName: json['business_name'],
+        businessDescription: json['business_description'],
+        workingSolo: json['working_solo'],
+        associateIds: json['associate_ids'],
+        whatsappNumber: json['whatsapp_number'],
+        createdAt: DateTime.parse(json['created_at']),
+      )).toList();
+    } catch (e) {
+      _logger.e('Error getting approved users: $e');
       return [];
     }
   }

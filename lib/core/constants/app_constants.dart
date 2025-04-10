@@ -12,6 +12,7 @@ class AppConstants {
   /// User status
   static const String statusActive = 'active';
   static const String statusPending = 'pending';
+  static const String statusRejected = 'rejected';
 
   /// Arabic role names
   static const String roleBuyerSellerArabic = 'شاري / بايع';

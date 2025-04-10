@@ -81,11 +81,26 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final credential = await _authRepository.signInWithGoogle();
       final userExists = await _authRepository.checkUserExists(credential.user.email!);
       
+      // Check if this is the admin email
+      final isAdmin = credential.user.email == AppConstants.adminEmail;
+      
       if (userExists) {
         final userData = await _authRepository.getUserData(credential.user.id);
         state = state.copyWith(
           isLoading: false,
           user: userData,
+          userExists: true,
+        );
+        
+        // If this is the admin email, we don't need to check the user data
+        // This allows the admin to sign in even if they don't have a user record yet
+        if (isAdmin && userData == null) {
+          state = state.copyWith(userExists: true);
+        }
+      } else if (isAdmin) {
+        // For admin, create a user record if it doesn't exist
+        state = state.copyWith(
+          isLoading: false,
           userExists: true,
         );
       } else {

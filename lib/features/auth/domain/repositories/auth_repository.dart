@@ -60,6 +60,11 @@ class AuthRepository {
   Future<List<UserModel>> getPendingUsers() async {
     return await _authService.getPendingUsers();
   }
+  
+  /// Get all users with active status
+  Future<List<UserModel>> getApprovedUsers() async {
+    return await _authService.getApprovedUsers();
+  }
 }
 
 /// Provider for AuthRepository

@@ -92,210 +92,102 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       spacing: 8,
                       runSpacing: 8,
                       children: [
-                        TextButton(
-                          onPressed: () {
-                            setState(() {
-                              _isAdminLogin = false;
-                            });
-                          },
-                          style: TextButton.styleFrom(
-                            foregroundColor: !_isAdminLogin
-                                ? AppColors.primary
-                                : theme.brightness == Brightness.light
-                                    ? AppColors.darkText.withOpacity(0.6)
-                                    : AppColors.lightText.withOpacity(0.6),
-                          ),
-                          child: const Text('تسجيل دخول المستخدم'),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            setState(() {
-                              _isAdminLogin = true;
-                              _emailController.text = AppConstants.adminEmail;
-                            });
-                          },
-                          style: TextButton.styleFrom(
-                            foregroundColor: _isAdminLogin
-                                ? AppColors.primary
-                                : theme.brightness == Brightness.light
-                                    ? AppColors.darkText.withOpacity(0.6)
-                                    : AppColors.lightText.withOpacity(0.6),
-                          ),
-                          child: const Text('تسجيل دخول المسؤول'),
+                        Text(
+                          'قم بتسجيل الدخول باستخدام حساب Google',
+                          style: theme.textTheme.titleMedium,
+                          textAlign: TextAlign.center,
                         ),
                       ],
                     ),
                     
                     SizedBox(height: size.height * 0.04),
                     
-                    // Admin login form
-                    if (_isAdminLogin) ...[
-                      Center(
-                        child: Container(
-                          constraints: BoxConstraints(
-                            maxWidth: maxWidth < 400 ? maxWidth : 400,
-                          ),
-                          child: TextField(
-                            controller: _emailController,
-                            decoration: const InputDecoration(
-                              labelText: 'البريد الإلكتروني',
-                              prefixIcon: Icon(Icons.email),
-                            ),
-                            keyboardType: TextInputType.emailAddress,
-                            enabled: false, // Admin email is fixed
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Center(
-                        child: Container(
-                          constraints: BoxConstraints(
-                            maxWidth: maxWidth < 400 ? maxWidth : 400,
-                          ),
-                          child: TextField(
-                            controller: _passwordController,
-                            decoration: InputDecoration(
-                              labelText: 'كلمة المرور',
-                              prefixIcon: const Icon(Icons.lock),
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  _obscurePassword
-                                      ? Icons.visibility
-                                      : Icons.visibility_off,
-                                ),
-                                onPressed: () {
-                                  setState(() {
-                                    _obscurePassword = !_obscurePassword;
-                                  });
-                                },
-                              ),
-                            ),
-                            obscureText: _obscurePassword,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      ElevatedButton(
-                        onPressed: authState.isLoading
-                            ? null
-                            : () async {
-                                if (_passwordController.text.isEmpty) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('الرجاء إدخال كلمة المرور'),
-                                    ),
-                                  );
-                                  return;
-                                }
-                                
-                                await ref.read(authStateProvider.notifier)
-                                    .signInWithEmail(
-                                      _emailController.text,
-                                      _passwordController.text,
-                                    );
-                                    
-                                if (ref.read(authStateProvider).errorMessage == null &&
-                                    ref.read(authStateProvider).userExists) {
-                                  if (context.mounted) {
-                                    Navigator.pushReplacementNamed(
-                                      context, 
-                                      '/admin/dashboard',
-                                    );
-                                  }
-                                }
-                              },
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                        ),
-                        child: authState.isLoading
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Text('تسجيل الدخول'),
-                      ),
-                    ]
-                    
-                    // User login with Google
-                    else ...[
-                      ElevatedButton.icon(
-                        onPressed: authState.isLoading
-                            ? null
-                            : () async {
-                                await ref.read(authStateProvider.notifier)
-                                    .signInWithGoogle();
-                                    
-                                final currentAuthState = ref.read(authStateProvider);
-                                    
-                                if (currentAuthState.errorMessage == null) {
-                                  if (currentAuthState.userExists) {
-                                    final user = currentAuthState.user;
-                                    
-                                    if (user != null) {
-                                      if (user.isActive) {
-                                        if (context.mounted) {
-                                          Navigator.pushReplacementNamed(
-                                            context, 
-                                            '/home',
-                                          );
-                                        }
-                                      } else if (user.isPending) {
-                                        if (context.mounted) {
-                                          Navigator.pushReplacementNamed(
-                                            context, 
-                                            '/waiting',
-                                          );
-                                        }
-                                      }
-                                    }
-                                  } else {
-                                    // User doesn't exist, start sign-up flow
-                                    final googleUser = ref.read(authStateProvider.notifier)
-                                        .currentUser;
-                                        
-                                    if (googleUser != null && context.mounted) {
-                                      // Navigate to role selection with user data
+                    // Google Sign-In button for all users (including admin)
+                    ElevatedButton.icon(
+                      onPressed: authState.isLoading
+                          ? null
+                          : () async {
+                              await ref.read(authStateProvider.notifier)
+                                  .signInWithGoogle();
+                                  
+                              final currentAuthState = ref.read(authStateProvider);
+                                  
+                              if (currentAuthState.errorMessage == null) {
+                                if (currentAuthState.userExists) {
+                                  final user = currentAuthState.user;
+                                  
+                                  // Check if this is the admin email
+                                  final isAdmin = user?.isAdmin ?? 
+                                      (currentAuthState.user?.email == AppConstants.adminEmail || 
+                                       ref.read(authStateProvider.notifier).currentUser?.email == AppConstants.adminEmail);
+                                  
+                                  if (isAdmin) {
+                                    if (context.mounted) {
                                       Navigator.pushReplacementNamed(
                                         context, 
-                                        '/signup/role',
-                                        arguments: (
-                                          name: googleUser.userMetadata?['full_name'] ?? '',
-                                          email: googleUser.email ?? ''
-                                        ),
+                                        '/admin/dashboard',
                                       );
                                     }
+                                  } else if (user != null) {
+                                    if (user.isActive) {
+                                      if (context.mounted) {
+                                        Navigator.pushReplacementNamed(
+                                          context, 
+                                          '/home',
+                                        );
+                                      }
+                                    } else if (user.isPending) {
+                                      if (context.mounted) {
+                                        Navigator.pushReplacementNamed(
+                                          context, 
+                                          '/waiting',
+                                        );
+                                      }
+                                    }
+                                  }
+                                } else {
+                                  // User doesn't exist, start sign-up flow
+                                  final googleUser = ref.read(authStateProvider.notifier)
+                                      .currentUser;
+                                      
+                                  if (googleUser != null && context.mounted) {
+                                    // Navigate to role selection with user data
+                                    Navigator.pushReplacementNamed(
+                                      context, 
+                                      '/signup/role',
+                                      arguments: (
+                                        name: googleUser.userMetadata?['full_name'] ?? '',
+                                        email: googleUser.email ?? ''
+                                      ),
+                                    );
                                   }
                                 }
-                              },
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          backgroundColor: Colors.white,
-                          foregroundColor: Colors.black87,
-                        ),
-                        icon: Image.asset(
-                          'assets/icons/google_logo.png',
-                          width: 24,
-                          height: 24,
-                        ),
-                        label: authState.isLoading
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Text(
-                                'تسجيل الدخول باستخدام Google',
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
-                              ),
+                              }
+                            },
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        backgroundColor: Colors.white,
+                        foregroundColor: Colors.black87,
                       ),
-                    ],
+                      icon: Image.asset(
+                        'assets/icons/google_logo.png',
+                        width: 24,
+                        height: 24,
+                      ),
+                      label: authState.isLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Text(
+                              'تسجيل الدخول باستخدام Google',
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
+                    ),
                     
                     if (authState.errorMessage != null)
                       Padding(

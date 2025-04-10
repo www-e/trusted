@@ -4,35 +4,27 @@ import 'package:trusted/core/constants/app_constants.dart';
 import 'package:trusted/core/theme/colors.dart';
 import 'package:trusted/features/admin/domain/notifiers/admin_notifier.dart';
 import 'package:trusted/features/auth/domain/models/user_model.dart';
-import 'package:trusted/features/auth/domain/notifiers/auth_notifier.dart';
 
-/// Admin dashboard screen for managing pending users
-class AdminDashboardScreen extends ConsumerStatefulWidget {
+/// Admin history screen for viewing approved users
+class AdminHistoryScreen extends ConsumerStatefulWidget {
   /// Constructor
-  const AdminDashboardScreen({super.key});
+  const AdminHistoryScreen({super.key});
 
   @override
-  ConsumerState<AdminDashboardScreen> createState() => _AdminDashboardScreenState();
+  ConsumerState<AdminHistoryScreen> createState() => _AdminHistoryScreenState();
 }
 
-class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
-  @override
-  void initState() {
-    super.initState();
-    // We'll load pending users here, but the main initialization is done in AdminMainScreen
-  }
-
+class _AdminHistoryScreenState extends ConsumerState<AdminHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final adminState = ref.watch(adminStateProvider);
-    final size = MediaQuery.of(context).size;
     
     return SafeArea(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Admin stats and welcome section
+          // Stats section
           Container(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             decoration: BoxDecoration(
@@ -47,14 +39,14 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Admin welcome card
+                // History info
                 Row(
                   children: [
                     CircleAvatar(
-                      backgroundColor: AppColors.primary,
+                      backgroundColor: AppColors.success,
                       radius: 24,
-                      child: const Icon(
-                        Icons.admin_panel_settings,
+                      child: Icon(
+                        Icons.history,
                         color: Colors.white,
                         size: 24,
                       ),
@@ -65,14 +57,14 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'مرحباً بك في لوحة التحكم',
+                            'سجل المستخدمين المفعلين',
                             style: theme.textTheme.titleLarge?.copyWith(
                               color: AppColors.primary,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           Text(
-                            'يمكنك مراجعة وتفعيل حسابات المستخدمين الجدد من هنا.',
+                            'قائمة بجميع المستخدمين الذين تم تفعيل حساباتهم',
                             style: theme.textTheme.bodyMedium,
                           ),
                         ],
@@ -89,10 +81,10 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                     Expanded(
                       child: _buildStatCard(
                         context,
-                        'المستخدمون قيد المراجعة',
-                        '${adminState.pendingUsers.length}',
-                        Icons.people_alt,
-                        AppColors.warning,
+                        'إجمالي المستخدمين المفعلين',
+                        '${adminState.approvedUsers.length}',
+                        Icons.people,
+                        AppColors.success,
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -101,8 +93,8 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                         context,
                         'تم تفعيلهم اليوم',
                         '${adminState.approvedTodayCount}',
-                        Icons.check_circle,
-                        AppColors.success,
+                        Icons.today,
+                        AppColors.primary,
                       ),
                     ),
                   ],
@@ -111,66 +103,68 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
             ),
           ),
           
-          // Pending users list
+          // Filter section
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
+            padding: const EdgeInsets.all(16.0),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'المستخدمون قيد المراجعة',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
+                Expanded(
+                  child: TextField(
+                    decoration: InputDecoration(
+                      hintText: 'بحث عن مستخدم...',
+                      prefixIcon: const Icon(Icons.search),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      filled: true,
+                      fillColor: theme.brightness == Brightness.light
+                          ? Colors.grey.shade100
+                          : AppColors.darkSurface,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                    ),
                   ),
                 ),
+                const SizedBox(width: 8),
                 IconButton(
-                  icon: const Icon(Icons.refresh),
                   onPressed: () {
-                    ref.read(adminStateProvider.notifier).loadPendingUsers();
+                    ref.read(adminStateProvider.notifier).loadApprovedUsers();
                   },
+                  icon: const Icon(Icons.refresh),
                   tooltip: 'تحديث',
+                  style: IconButton.styleFrom(
+                    backgroundColor: theme.brightness == Brightness.light
+                        ? Colors.grey.shade100
+                        : AppColors.darkSurface,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                 ),
               ],
             ),
           ),
           
-          const SizedBox(height: 8),
-          
-          // Pending users list
+          // Users list
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: adminState.isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : adminState.pendingUsers.isEmpty
-                      ? _buildEmptyState()
-                      : ListView.builder(
-                          itemCount: adminState.pendingUsers.length,
-                          itemBuilder: (context, index) {
-                            final user = adminState.pendingUsers[index];
-                            return _buildUserCard(user);
-                          },
-                        ),
-            ),
+            child: adminState.isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : adminState.approvedUsers.isEmpty
+                    ? _buildEmptyState()
+                    : ListView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        itemCount: adminState.approvedUsers.length,
+                        itemBuilder: (context, index) {
+                          final user = adminState.approvedUsers[index];
+                          return _buildUserHistoryCard(user);
+                        },
+                      ),
           ),
-          
-          if (adminState.errorMessage != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 16.0, bottom: 16.0),
-              child: Text(
-                adminState.errorMessage!,
-                style: TextStyle(
-                  color: AppColors.error,
-                  fontWeight: FontWeight.bold,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
         ],
       ),
     );
   }
-  
+
   Widget _buildStatCard(
     BuildContext context, 
     String title, 
@@ -229,19 +223,21 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Icons.check_circle_outline,
+            Icons.people_outline,
             size: 64,
-            color: AppColors.success.withOpacity(0.7),
+            color: Theme.of(context).brightness == Brightness.light
+                ? Colors.grey.shade400
+                : Colors.grey.shade700,
           ),
           const SizedBox(height: 16),
           Text(
-            'لا يوجد مستخدمون قيد المراجعة',
+            'لا يوجد مستخدمين مفعلين بعد',
             style: Theme.of(context).textTheme.titleMedium,
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           Text(
-            'جميع المستخدمين تم مراجعتهم وتفعيلهم',
+            'ستظهر هنا قائمة المستخدمين الذين تم تفعيل حساباتهم',
             style: Theme.of(context).textTheme.bodyMedium,
             textAlign: TextAlign.center,
           ),
@@ -250,7 +246,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
     );
   }
 
-  Widget _buildUserCard(UserModel user) {
+  Widget _buildUserHistoryCard(UserModel user) {
     final theme = Theme.of(context);
     final roleArabic = _getRoleArabic(user.role);
     
@@ -273,11 +269,13 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
             Row(
               children: [
                 CircleAvatar(
-                  backgroundColor: AppColors.primary.withOpacity(0.1),
+                  backgroundColor: user.isRejected 
+                      ? AppColors.error.withOpacity(0.1)
+                      : AppColors.success.withOpacity(0.1),
                   child: Text(
                     user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
                     style: TextStyle(
-                      color: AppColors.primary,
+                      color: user.isRejected ? AppColors.error : AppColors.success,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -306,16 +304,16 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.warning.withOpacity(0.1),
+                    color: (user.isRejected ? AppColors.error : AppColors.success).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.warning),
+                    border: Border.all(color: user.isRejected ? AppColors.error : AppColors.success),
                   ),
                   child: Text(
                     roleArabic,
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.warning,
+                      color: user.isRejected ? AppColors.error : AppColors.success,
                     ),
                   ),
                 ),
@@ -335,30 +333,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                 'اسم النشاط التجاري', 
                 user.businessName ?? 'غير محدد',
               ),
-              _buildDetailRow(
-                Icons.description, 
-                'وصف النشاط التجاري', 
-                user.businessDescription ?? 'غير محدد',
-              ),
-              _buildDetailRow(
-                Icons.person, 
-                'يعمل بمفرده', 
-                user.workingSolo == true ? 'نعم' : 'لا',
-              ),
-              if (user.workingSolo == false)
-                _buildDetailRow(
-                  Icons.people, 
-                  'معرفات الشركاء', 
-                  user.associateIds ?? 'غير محدد',
-                ),
             ],
-            
-            if (user.isMediator)
-              _buildDetailRow(
-                Icons.phone_android, 
-                'رقم الواتساب', 
-                user.whatsappNumber ?? '-',
-              ),
             
             _buildDetailRow(
               Icons.calendar_today, 
@@ -366,31 +341,41 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
               _formatDate(user.createdAt),
             ),
             
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
             
-            // Approve button
+            // Status badge
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                OutlinedButton(
-                  onPressed: () {
-                    _showRejectDialog(user);
-                  },
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.error,
-                    side: BorderSide(color: AppColors.error),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
                   ),
-                  child: const Text('رفض'),
-                ),
-                const SizedBox(width: 16),
-                ElevatedButton(
-                  onPressed: () {
-                    _showApproveDialog(user);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.success,
+                  decoration: BoxDecoration(
+                    color: (user.isRejected ? AppColors.error : AppColors.success).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: user.isRejected ? AppColors.error : AppColors.success),
                   ),
-                  child: const Text('قبول'),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        user.isRejected ? Icons.cancel : Icons.check_circle,
+                        size: 16,
+                        color: user.isRejected ? AppColors.error : AppColors.success,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        user.isRejected ? 'تم الرفض' : 'تم التفعيل',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: user.isRejected ? AppColors.error : AppColors.success,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -425,62 +410,6 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
               value,
               style: Theme.of(context).textTheme.bodySmall,
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showApproveDialog(UserModel user) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('تأكيد القبول'),
-        content: Text('هل أنت متأكد من قبول المستخدم ${user.name}؟'),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            child: const Text('إلغاء'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              await ref.read(adminStateProvider.notifier).approveUser(user.id);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.success,
-            ),
-            child: const Text('تأكيد'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showRejectDialog(UserModel user) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('تأكيد الرفض'),
-        content: Text('هل أنت متأكد من رفض المستخدم ${user.name}؟'),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            child: const Text('إلغاء'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              await ref.read(adminStateProvider.notifier).rejectUser(user.id);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-            ),
-            child: const Text('تأكيد'),
           ),
         ],
       ),

@@ -6,7 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:trusted/core/config/env_config.dart';
 import 'package:trusted/core/theme/theme.dart';
-import 'package:trusted/features/admin/presentation/screens/admin_dashboard_screen.dart';
+import 'package:trusted/features/admin/presentation/screens/admin_main_screen.dart';
 import 'package:trusted/features/auth/domain/notifiers/auth_notifier.dart';
 import 'package:trusted/features/auth/presentation/screens/confirmation_screen.dart';
 import 'package:trusted/features/auth/presentation/screens/information_entry_screen.dart';
@@ -95,7 +95,7 @@ class _MyAppState extends ConsumerState<MyApp> {
         '/signup/confirmation': (context) => const ConfirmationScreen(),
         '/waiting': (context) => const WaitingScreen(),
         '/home': (context) => const HomeScreen(),
-        '/admin/dashboard': (context) => const AdminDashboardScreen(),
+        '/admin/dashboard': (context) => const AdminMainScreen(),
       },
     );
   }
