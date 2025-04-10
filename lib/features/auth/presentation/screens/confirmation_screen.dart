@@ -191,11 +191,25 @@ class ConfirmationScreen extends ConsumerWidget {
                                   
                               if (ref.read(authStateProvider).errorMessage == null) {
                                 if (context.mounted) {
-                                  Navigator.pushNamedAndRemoveUntil(
-                                    context, 
-                                    '/home', 
-                                    (route) => false,
-                                  );
+                                  // Check user role to determine where to navigate
+                                  final currentUser = ref.read(authStateProvider).user;
+                                  if (currentUser != null) {
+                                    if (currentUser.role == AppConstants.roleBuyerSeller) {
+                                      // Buyer/Seller goes directly to home
+                                      Navigator.pushNamedAndRemoveUntil(
+                                        context, 
+                                        '/home', 
+                                        (route) => false,
+                                      );
+                                    } else {
+                                      // Merchant and Mediator go to waiting screen
+                                      Navigator.pushNamedAndRemoveUntil(
+                                        context, 
+                                        '/waiting', 
+                                        (route) => false,
+                                      );
+                                    }
+                                  }
                                 }
                               }
                             },

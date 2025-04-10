@@ -51,6 +51,9 @@ class UserModel {
   /// When the user was created
   final DateTime createdAt;
 
+  /// When the user was accepted/activated
+  final DateTime? acceptedAt;
+
   /// Constructor
   UserModel({
     required this.id,
@@ -68,6 +71,7 @@ class UserModel {
     this.associateIds,
     this.whatsappNumber,
     required this.createdAt,
+    this.acceptedAt,
   });
 
   /// Creates a new UserModel from JSON
@@ -94,6 +98,7 @@ class UserModel {
     String? associateIds,
     String? whatsappNumber,
     DateTime? createdAt,
+    DateTime? acceptedAt,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -111,6 +116,7 @@ class UserModel {
       associateIds: associateIds ?? this.associateIds,
       whatsappNumber: whatsappNumber ?? this.whatsappNumber,
       createdAt: createdAt ?? this.createdAt,
+      acceptedAt: acceptedAt ?? this.acceptedAt,
     );
   }
 
@@ -125,6 +131,7 @@ class UserModel {
         country: '',
         status: AppConstants.statusActive,
         createdAt: DateTime.now(),
+        acceptedAt: null,
       );
 
   /// Checks if this UserModel is empty

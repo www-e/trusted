@@ -4,6 +4,7 @@ import 'package:trusted/core/theme/colors.dart';
 import 'package:trusted/features/admin/domain/notifiers/admin_notifier.dart';
 import 'package:trusted/features/admin/presentation/screens/admin_dashboard_screen.dart';
 import 'package:trusted/features/admin/presentation/screens/admin_history_screen.dart';
+import 'package:trusted/features/admin/presentation/screens/admin_users_screen.dart';
 import 'package:trusted/features/auth/domain/notifiers/auth_notifier.dart';
 
 /// Main admin screen with bottom navigation
@@ -20,6 +21,7 @@ class _AdminMainScreenState extends ConsumerState<AdminMainScreen> {
   final List<Widget> _screens = [
     const AdminDashboardScreen(),
     const AdminHistoryScreen(),
+    const AdminUsersScreen(),
   ];
 
   @override
@@ -37,7 +39,7 @@ class _AdminMainScreenState extends ConsumerState<AdminMainScreen> {
     
     return Scaffold(
       appBar: AppBar(
-        title: Text(_currentIndex == 0 ? 'لوحة تحكم المسؤول' : 'سجل المستخدمين'),
+        title: Text(_currentIndex == 0 ? 'لوحة تحكم المسؤول' : _currentIndex == 1 ? 'سجل المستخدمين' : 'المستخدمين'),
         centerTitle: true,
         elevation: 0,
         backgroundColor: theme.brightness == Brightness.light 
@@ -91,6 +93,10 @@ class _AdminMainScreenState extends ConsumerState<AdminMainScreen> {
             BottomNavigationBarItem(
               icon: Icon(Icons.history),
               label: 'السجل',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.people),
+              label: 'المستخدمين',
             ),
           ],
         ),

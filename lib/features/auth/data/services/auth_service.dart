@@ -186,6 +186,9 @@ class AuthService {
         associateIds: response['associate_ids'],
         whatsappNumber: response['whatsapp_number'],
         createdAt: DateTime.parse(response['created_at']),
+        acceptedAt: response['accepted_at'] != null 
+            ? DateTime.parse(response['accepted_at']) 
+            : null,
       );
     } catch (e) {
       _logger.e('Error getting user data: $e');
@@ -233,14 +236,47 @@ class AuthService {
   /// Update user status
   Future<bool> updateUserStatus(String userId, String status) async {
     try {
+      final updateData = {'status': status};
+      
+      // Add acceptedAt timestamp when activating a user
+      if (status == AppConstants.statusActive) {
+        updateData['accepted_at'] = DateTime.now().toIso8601String();
+      }
+      
       await _supabaseClient
           .from('users')
-          .update({'status': status})
+          .update(updateData)
           .eq('id', userId);
       
       return true;
     } catch (e) {
       _logger.e('Error updating user status: $e');
+      return false;
+    }
+  }
+
+  /// Update user data
+  Future<bool> updateUserData(UserModel user) async {
+    try {
+      final userData = {
+        'name': user.name,
+        'phone_number': user.phoneNumber,
+        'secondary_phone_number': user.secondaryPhoneNumber,
+        'nickname': user.nickname,
+        'country': user.country,
+        'business_name': user.businessName,
+        'business_description': user.businessDescription,
+        'whatsapp_number': user.whatsappNumber,
+      };
+      
+      await _supabaseClient
+          .from('users')
+          .update(userData)
+          .eq('id', user.id);
+      
+      return true;
+    } catch (e) {
+      _logger.e('Error updating user data: $e');
       return false;
     }
   }
@@ -269,6 +305,9 @@ class AuthService {
         associateIds: json['associate_ids'],
         whatsappNumber: json['whatsapp_number'],
         createdAt: DateTime.parse(json['created_at']),
+        acceptedAt: json['accepted_at'] != null 
+            ? DateTime.parse(json['accepted_at']) 
+            : null,
       )).toList();
     } catch (e) {
       _logger.e('Error getting pending users: $e');
@@ -301,6 +340,9 @@ class AuthService {
         associateIds: json['associate_ids'],
         whatsappNumber: json['whatsapp_number'],
         createdAt: DateTime.parse(json['created_at']),
+        acceptedAt: json['accepted_at'] != null 
+            ? DateTime.parse(json['accepted_at']) 
+            : null,
       )).toList();
     } catch (e) {
       _logger.e('Error getting approved users: $e');

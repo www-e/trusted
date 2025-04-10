@@ -341,6 +341,13 @@ class _AdminHistoryScreenState extends ConsumerState<AdminHistoryScreen> {
               _formatDate(user.createdAt),
             ),
             
+            if (user.acceptedAt != null)
+              _buildDetailRow(
+                Icons.check_circle_outline, 
+                'تاريخ التفعيل', 
+                _formatDate(user.acceptedAt!),
+              ),
+            
             const SizedBox(height: 8),
             
             // Status badge

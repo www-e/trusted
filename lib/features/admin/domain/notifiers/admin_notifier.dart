@@ -125,8 +125,13 @@ class AdminNotifier extends StateNotifier<AdminState> {
         final updatedPendingUsers = [...state.pendingUsers];
         updatedPendingUsers.removeWhere((user) => user.id == userId);
         
-        // Add the approved user to the approved list
-        final updatedApprovedUsers = [...state.approvedUsers, approvedUser.copyWith(status: AppConstants.statusActive)];
+        // Add the approved user to the approved list with updated status and acceptedAt
+        final updatedApprovedUsers = [...state.approvedUsers, 
+          approvedUser.copyWith(
+            status: AppConstants.statusActive,
+            acceptedAt: DateTime.now(),
+          )
+        ];
         
         // Increment the approved today count if the user was approved today
         final today = DateTime.now();
@@ -208,6 +213,53 @@ class AdminNotifier extends StateNotifier<AdminState> {
         isLoading: false,
         errorMessage: e.toString(),
       );
+    }
+  }
+
+  /// Update user data
+  Future<bool> updateUserData(UserModel updatedUser) async {
+    try {
+      state = state.copyWith(isLoading: true, errorMessage: null);
+      
+      final success = await _authRepository.updateUserData(updatedUser);
+      
+      if (success) {
+        // Update user in pending users list if present
+        final updatedPendingUsers = state.pendingUsers.map((user) {
+          if (user.id == updatedUser.id) {
+            return updatedUser;
+          }
+          return user;
+        }).toList();
+        
+        // Update user in approved users list if present
+        final updatedApprovedUsers = state.approvedUsers.map((user) {
+          if (user.id == updatedUser.id) {
+            return updatedUser;
+          }
+          return user;
+        }).toList();
+        
+        state = state.copyWith(
+          isLoading: false,
+          pendingUsers: updatedPendingUsers,
+          approvedUsers: updatedApprovedUsers,
+        );
+        
+        return true;
+      } else {
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: 'فشل في تحديث بيانات المستخدم',
+        );
+        return false;
+      }
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: e.toString(),
+      );
+      return false;
     }
   }
 }

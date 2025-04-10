@@ -86,10 +86,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
       
       if (userExists) {
         final userData = await _authRepository.getUserData(credential.user.id);
+        
+        // Always set user data if it exists, regardless of status
         state = state.copyWith(
           isLoading: false,
           user: userData,
           userExists: true,
+          errorMessage: null,
         );
         
         // If this is the admin email, we don't need to check the user data

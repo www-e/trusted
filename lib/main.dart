@@ -11,6 +11,7 @@ import 'package:trusted/features/auth/domain/notifiers/auth_notifier.dart';
 import 'package:trusted/features/auth/presentation/screens/confirmation_screen.dart';
 import 'package:trusted/features/auth/presentation/screens/information_entry_screen.dart';
 import 'package:trusted/features/auth/presentation/screens/login_screen.dart';
+import 'package:trusted/features/auth/presentation/screens/rejected_screen.dart';
 import 'package:trusted/features/auth/presentation/screens/role_selection_screen.dart';
 import 'package:trusted/features/auth/presentation/screens/waiting_screen.dart';
 import 'package:trusted/features/profile/presentation/screens/home_screen.dart';
@@ -94,6 +95,7 @@ class _MyAppState extends ConsumerState<MyApp> {
         '/signup/information': (context) => const InformationEntryScreen(),
         '/signup/confirmation': (context) => const ConfirmationScreen(),
         '/waiting': (context) => const WaitingScreen(),
+        '/rejected': (context) => const RejectedScreen(),
         '/home': (context) => const HomeScreen(),
         '/admin/dashboard': (context) => const AdminMainScreen(),
       },
@@ -118,6 +120,8 @@ class SplashScreen extends ConsumerWidget {
             Navigator.pushReplacementNamed(context, '/home');
           } else if (authState.user!.isPending) {
             Navigator.pushReplacementNamed(context, '/waiting');
+          } else if (authState.user!.isRejected) {
+            Navigator.pushReplacementNamed(context, '/rejected');
           }
         } else {
           Navigator.pushReplacementNamed(context, '/login');

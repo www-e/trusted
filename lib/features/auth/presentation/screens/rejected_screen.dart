@@ -3,10 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:trusted/core/theme/colors.dart';
 import 'package:trusted/features/auth/domain/notifiers/auth_notifier.dart';
 
-/// Screen shown to users with pending status
-class WaitingScreen extends ConsumerWidget {
+/// Screen shown to users with rejected status
+class RejectedScreen extends ConsumerWidget {
   /// Constructor
-  const WaitingScreen({super.key});
+  const RejectedScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -16,7 +16,7 @@ class WaitingScreen extends ConsumerWidget {
     
     return Scaffold(
       appBar: AppBar(
-        title: const Text('قيد المراجعة'),
+        title: const Text('طلب مرفوض'),
         centerTitle: true,
         actions: [
           IconButton(
@@ -39,27 +39,27 @@ class WaitingScreen extends ConsumerWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Waiting icon
+                // Rejected icon
                 Icon(
-                  Icons.hourglass_top,
+                  Icons.cancel_outlined,
                   size: 100,
-                  color: AppColors.warning,
+                  color: AppColors.error,
                 ),
                 
                 const SizedBox(height: 32),
                 
-                // Waiting title
+                // Rejected title
                 Text(
-                  'حسابك قيد المراجعة',
+                  'تم رفض طلبك',
                   style: theme.textTheme.headlineMedium,
                   textAlign: TextAlign.center,
                 ),
                 
                 const SizedBox(height: 16),
                 
-                // Waiting message
+                // Rejection message
                 Text(
-                  'شكراً لتسجيلك في تطبيق Trusted. حسابك قيد المراجعة من قبل المسؤول وسيتم تفعيله قريباً.',
+                  'نأسف لإبلاغك أن طلب التسجيل الخاص بك في تطبيق Trusted قد تم رفضه من قبل المسؤول.',
                   style: theme.textTheme.bodyLarge,
                   textAlign: TextAlign.center,
                 ),
@@ -95,9 +95,43 @@ class WaitingScreen extends ConsumerWidget {
                 
                 const SizedBox(height: 32),
                 
+                // Rejection reason card
+                Card(
+                  elevation: 0,
+                  color: AppColors.error.withOpacity(0.1),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: BorderSide(
+                      color: AppColors.error.withOpacity(0.3),
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'سبب الرفض:',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.error,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'لم تستوفِ المعلومات المقدمة المعايير المطلوبة للتسجيل في التطبيق. يرجى التواصل مع فريق الدعم لمزيد من المعلومات.',
+                          style: theme.textTheme.bodyMedium,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                
+                const SizedBox(height: 32),
+                
                 // Contact info
                 Text(
-                  'إذا كان لديك أي استفسار، يرجى التواصل معنا على البريد الإلكتروني:',
+                  'إذا كنت تعتقد أن هناك خطأ أو ترغب في معرفة المزيد من التفاصيل، يرجى التواصل معنا على البريد الإلكتروني:',
                   style: theme.textTheme.bodyMedium,
                   textAlign: TextAlign.center,
                 ),
@@ -115,19 +149,20 @@ class WaitingScreen extends ConsumerWidget {
                 
                 const SizedBox(height: 32),
                 
-                // Refresh button
-                OutlinedButton.icon(
-                  onPressed: () async {
-                    await ref.read(authStateProvider.notifier).initAuthState();
-                    
-                    final currentUser = ref.read(authStateProvider).user;
-                    if (currentUser != null && currentUser.isActive && context.mounted) {
-                      Navigator.pushReplacementNamed(context, '/home');
-                    }
+                // Try again button
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.pushNamedAndRemoveUntil(
+                      context,
+                      '/signup/role',
+                      (route) => false,
+                    );
                   },
                   icon: const Icon(Icons.refresh),
-                  label: const Text('تحديث الحالة'),
-                  style: OutlinedButton.styleFrom(
+                  label: const Text('إعادة التسجيل'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
                 ),

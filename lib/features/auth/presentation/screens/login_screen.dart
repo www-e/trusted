@@ -84,24 +84,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       textAlign: TextAlign.center,
                     ),
                     
-                    SizedBox(height: size.height * 0.06),
-                    
-                    // Toggle between user and admin login
-                    Wrap(
-                      alignment: WrapAlignment.center,
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        Text(
-                          'قم بتسجيل الدخول باستخدام حساب Google',
-                          style: theme.textTheme.titleMedium,
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                    
-                    SizedBox(height: size.height * 0.04),
-                    
+                    SizedBox(height: size.height * 0.06),                    
                     // Google Sign-In button for all users (including admin)
                     ElevatedButton.icon(
                       onPressed: authState.isLoading
@@ -141,6 +124,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                         Navigator.pushReplacementNamed(
                                           context, 
                                           '/waiting',
+                                        );
+                                      }
+                                    } else if (user.isRejected) {
+                                      if (context.mounted) {
+                                        Navigator.pushReplacementNamed(
+                                          context, 
+                                          '/rejected',
                                         );
                                       }
                                     }

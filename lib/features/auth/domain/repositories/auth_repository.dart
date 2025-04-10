@@ -65,6 +65,11 @@ class AuthRepository {
   Future<List<UserModel>> getApprovedUsers() async {
     return await _authService.getApprovedUsers();
   }
+
+  /// Update user data
+  Future<bool> updateUserData(UserModel user) async {
+    return await _authService.updateUserData(user);
+  }
 }
 
 /// Provider for AuthRepository

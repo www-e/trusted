@@ -18,6 +18,7 @@ class InformationEntryScreen extends ConsumerStatefulWidget {
 class _InformationEntryScreenState extends ConsumerState<InformationEntryScreen> {
   final _formKey = GlobalKey<FormBuilderState>();
   late final provider;
+  bool _isProviderInitialized = false;
   
   @override
   void initState() {
@@ -28,10 +29,13 @@ class _InformationEntryScreenState extends ConsumerState<InformationEntryScreen>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Get user data from route arguments
-    final userData = ModalRoute.of(context)?.settings.arguments as ({String name, String email})?;
-    // Create a provider instance with user data
-    provider = signupFormProvider(userData ?? (name: '', email: ''));
+    if (!_isProviderInitialized) {
+      // Get user data from route arguments
+      final userData = ModalRoute.of(context)?.settings.arguments as ({String name, String email})?;
+      // Create a provider instance with user data
+      provider = signupFormProvider(userData ?? (name: '', email: ''));
+      _isProviderInitialized = true;
+    }
   }
   
   @override
