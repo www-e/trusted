@@ -15,6 +15,7 @@ import 'package:trusted/features/auth/presentation/screens/rejected_screen.dart'
 import 'package:trusted/features/auth/presentation/screens/role_selection_screen.dart';
 import 'package:trusted/features/auth/presentation/screens/waiting_screen.dart';
 import 'package:trusted/features/profile/presentation/screens/home_screen.dart';
+import 'package:trusted/screens/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -99,62 +100,6 @@ class _MyAppState extends ConsumerState<MyApp> {
         '/home': (context) => const HomeScreen(),
         '/admin/dashboard': (context) => const AdminMainScreen(),
       },
-    );
-  }
-}
-
-class SplashScreen extends ConsumerWidget {
-  const SplashScreen({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final authState = ref.watch(authStateProvider);
-    
-    // Check auth state and redirect accordingly
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!authState.isLoading) {
-        if (authState.user != null) {
-          if (authState.user!.isAdmin) {
-            Navigator.pushReplacementNamed(context, '/admin/dashboard');
-          } else if (authState.user!.isActive) {
-            Navigator.pushReplacementNamed(context, '/home');
-          } else if (authState.user!.isPending) {
-            Navigator.pushReplacementNamed(context, '/waiting');
-          } else if (authState.user!.isRejected) {
-            Navigator.pushReplacementNamed(context, '/rejected');
-          }
-        } else {
-          Navigator.pushReplacementNamed(context, '/login');
-        }
-      }
-    });
-    
-    return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // App logo
-            Icon(
-              Icons.security,
-              size: 80,
-              color: Theme.of(context).primaryColor,
-            ),
-            const SizedBox(height: 24),
-            // App name
-            Text(
-              'Trusted',
-              style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).primaryColor,
-                  ),
-            ),
-            const SizedBox(height: 48),
-            // Loading indicator
-            const CircularProgressIndicator(),
-          ],
-        ),
-      ),
     );
   }
 }

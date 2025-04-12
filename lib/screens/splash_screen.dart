@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:lottie/lottie.dart';
 import 'package:animated_text_kit/animated_text_kit.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:trusted/core/theme/colors.dart';
@@ -36,11 +35,11 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
   late Animation<double> _taglineOpacityAnimation;
   late Animation<double> _securityElementsAnimation;
   
-  // Particles for background effect
+  // Particles for background effect - reduced count for better performance
   final List<Particle> _particles = [];
-  final List<GamepadParticle> _gamepadParticles = []; 
-  final int _particleCount = 30;
-  final int _gamepadParticleCount = 8; 
+  final List<GamepadParticle> _gamepadParticles = [];
+  final int _particleCount = 15;
+  final int _gamepadParticleCount = 4;
   
   // Timer for navigation
   Timer? _navigationTimer;
@@ -49,10 +48,10 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
   void initState() {
     super.initState();
     
-    // Initialize background animation controller with extended duration (20 seconds)
+    // Initialize background animation controller
     _backgroundAnimationController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 20), 
+      duration: const Duration(seconds: 20),
     )..repeat();
     
     // Configure background animations for gradient
@@ -72,18 +71,18 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     );
     
     // Initialize lock animation controller
-    // Duration will be set when the Lottie animation is loaded
     _lockAnimationController = AnimationController(
       vsync: this,
+      duration: const Duration(seconds: 3),
     );
     
-    // Initialize glow animation controller with extended duration (4 seconds)
+    // Initialize glow animation controller
     _glowAnimationController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 4), 
+      duration: const Duration(seconds: 4),
     );
     
-    // Configure glow animation with a more vibrant effect
+    // Configure glow animation
     _glowAnimation = Tween<double>(
       begin: 0.0,
       end: 1.0,
@@ -94,10 +93,10 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
       ),
     );
     
-    // Initialize tagline animation controller with extended duration (3 seconds)
+    // Initialize tagline animation controller
     _taglineAnimationController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 3), 
+      duration: const Duration(seconds: 3),
     );
     
     // Configure tagline opacity animation
@@ -114,7 +113,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     // Initialize security elements animation controller
     _securityElementsController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1500),
+      duration: const Duration(milliseconds: 2500),
     );
     
     _securityElementsAnimation = Tween<double>(
@@ -123,7 +122,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     ).animate(
       CurvedAnimation(
         parent: _securityElementsController,
-        curve: Curves.elasticOut,
+        curve: Curves.easeOutCubic,
       ),
     );
     
@@ -133,9 +132,9 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     // Start animations with proper timing
     _startAnimationSequence();
     
-    // Set timer to navigate to appropriate screen after 4 seconds (reduced from 6)
+    // Set timer to navigate to appropriate screen after 6 seconds
     _navigationTimer = Timer(
-      const Duration(seconds: 4),
+      const Duration(seconds: 6),
       () {
         _navigateToNextScreen();
       },
@@ -170,7 +169,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
   void _initializeParticles() {
     final random = math.Random();
     
-    // Regular particles with reduced speed (50% slower)
+    // Regular particles with reduced speed for better performance
     for (int i = 0; i < _particleCount; i++) {
       _particles.add(
         Particle(
@@ -178,9 +177,9 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
             random.nextDouble() * 400,
             random.nextDouble() * 800,
           ),
-          speed: (0.2 + random.nextDouble() * 0.8) * 0.5, 
-          radius: 1 + random.nextDouble() * 3,
-          opacity: 0.1 + random.nextDouble() * 0.4,
+          speed: (0.2 + random.nextDouble() * 0.6) * 0.3,
+          radius: 1 + random.nextDouble() * 2,
+          opacity: 0.1 + random.nextDouble() * 0.3,
         ),
       );
     }
@@ -193,32 +192,38 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
             random.nextDouble() * 400,
             random.nextDouble() * 800,
           ),
-          speed: (0.1 + random.nextDouble() * 0.3) * 0.5, 
-          size: 10 + random.nextDouble() * 15, 
-          opacity: 0.05 + random.nextDouble() * 0.2, 
-          rotationSpeed: (random.nextDouble() - 0.5) * 0.02, 
-          rotation: random.nextDouble() * 2 * math.pi, 
+          speed: (0.1 + random.nextDouble() * 0.2) * 0.3,
+          size: 8 + random.nextDouble() * 12,
+          opacity: 0.05 + random.nextDouble() * 0.15,
+          rotationSpeed: (random.nextDouble() - 0.5) * 0.01,
+          rotation: random.nextDouble() * 2 * math.pi,
         ),
       );
     }
   }
 
-  /// Start animation sequence with proper timing
+  /// Start animation sequence with adjusted timing
   void _startAnimationSequence() {
-    // Lock animation will start when loaded in the Lottie widget
+    // Start lock animation with custom curve for more elegant effect
+    _lockAnimationController.repeat(
+      min: 0.0,
+      max: 1.0,
+      period: const Duration(seconds: 3),
+      reverse: true,
+    );
     
-    // Start glow animation after a short delay
-    Future.delayed(const Duration(milliseconds: 500), () {
+    // Start glow animation after a delay
+    Future.delayed(const Duration(milliseconds: 1000), () {
       _glowAnimationController.forward();
     });
     
     // Start tagline animation after a delay
-    Future.delayed(const Duration(milliseconds: 1200), () {
+    Future.delayed(const Duration(milliseconds: 2500), () {
       _taglineAnimationController.forward();
     });
     
     // Start security elements animation
-    Future.delayed(const Duration(milliseconds: 800), () {
+    Future.delayed(const Duration(milliseconds: 3000), () {
       _securityElementsController.forward();
     });
   }
@@ -271,7 +276,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                   animation1Value: _backgroundAnimation1.value,
                   animation2Value: _backgroundAnimation2.value,
                   particles: _particles,
-                  gamepadParticles: _gamepadParticles, 
+                  gamepadParticles: _gamepadParticles,
                 ),
                 size: Size.infinite,
               );
@@ -335,52 +340,37 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                                 ),
                               ),
                               
-                              // Lock animation on top of shield
+                              // Lock icon with enhanced animation
                               SizedBox(
                                 width: 100,
                                 height: 100,
-                                child: Lottie.asset(
-                                  'assets/animations/lock_animation.json',
-                                  controller: _lockAnimationController,
-                                  repeat: true,
-                                  animate: true,
-                                  frameRate: FrameRate.max,
-                                  onLoaded: (composition) {
-                                    // Adjust the controller duration to match the composition
-                                    _lockAnimationController.duration = composition.duration;
-                                  },
-                                ),
-                              ),
-                              
-                              // Trusted text overlay
-                              Positioned(
-                                bottom: 20,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: AppColors.secondary.withOpacity(0.7),
-                                      width: 1.5,
-                                    ),
-                                  ),
-                                  child: Text(
-                                    "TRUSTED",
-                                    style: TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 1.5,
-                                      color: Colors.white,
-                                      shadows: [
-                                        Shadow(
-                                          color: AppColors.secondary.withOpacity(0.8),
-                                          blurRadius: 8,
-                                          offset: const Offset(0, 2),
+                                child: AnimatedBuilder(
+                                  animation: _lockAnimationController,
+                                  builder: (context, child) {
+                                    return Container(
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: AppColors.secondary.withOpacity(0.3 + 0.3 * _lockAnimationController.value),
+                                            blurRadius: 12 * _lockAnimationController.value,
+                                            spreadRadius: 2 * _lockAnimationController.value,
+                                          ),
+                                        ],
+                                      ),
+                                      child: Transform.rotate(
+                                        angle: 0.05 * math.sin(_lockAnimationController.value * math.pi * 2),
+                                        child: Transform.scale(
+                                          scale: 0.85 + 0.15 * _lockAnimationController.value,
+                                          child: Icon(
+                                            Icons.lock,
+                                            size: 60,
+                                            color: Colors.white,
+                                          ),
                                         ),
-                                      ],
-                                    ),
-                                  ),
+                                      ),
+                                    );
+                                  },
                                 ),
                               ),
                             ],
@@ -390,31 +380,43 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                     },
                   ),
                   
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 24),
                   
-                  // App name with full text "Trusted" instead of just "T"
+                  // App name with smoother typewriter animation
                   AnimatedBuilder(
                     animation: _glowAnimation,
                     builder: (context, child) {
-                      return Text(
-                        'Trusted',
-                        style: TextStyle(
-                          fontSize: 48,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          shadows: [
-                            Shadow(
-                              color: AppColors.primary.withOpacity(_glowAnimation.value * 0.8),
-                              blurRadius: 12 * _glowAnimation.value,
-                              offset: const Offset(0, 0),
+                      return AnimatedTextKit(
+                        animatedTexts: [
+                          TypewriterAnimatedText(
+                            'Trusted',
+                            textStyle: TextStyle(
+                              fontSize: 48,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white.withOpacity(0.7 + 0.3 * _glowAnimation.value), // Fade effect
+                              shadows: [
+                                Shadow(
+                                  color: AppColors.primary.withOpacity(_glowAnimation.value * 0.8),
+                                  blurRadius: 12 * _glowAnimation.value,
+                                  offset: const Offset(0, 0),
+                                ),
+                                Shadow(
+                                  color: AppColors.secondary.withOpacity(_glowAnimation.value * 0.6),
+                                  blurRadius: 18 * _glowAnimation.value,
+                                  offset: const Offset(0, 0),
+                                ),
+                              ],
                             ),
-                            Shadow(
-                              color: AppColors.secondary.withOpacity(_glowAnimation.value * 0.6),
-                              blurRadius: 18 * _glowAnimation.value,
-                              offset: const Offset(0, 0),
-                            ),
-                          ],
-                        ),
+                            speed: const Duration(milliseconds: 300), // Slower for smoother effect
+                            cursor: '',
+                          ),
+                        ],
+                        totalRepeatCount: 1,
+                        displayFullTextOnTap: true,
+                        onNext: (index, isLast) {
+                          // Add slight scale animation for each letter
+                          _glowAnimationController.forward();
+                        },
                       );
                     },
                   ),
@@ -429,10 +431,22 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                         Text(
                           'منصة التداول الآمنة',
                           style: TextStyle(
-                            fontSize: 20,
+                            fontSize: 24,
                             fontWeight: FontWeight.w600,
                             color: Colors.white,
                             letterSpacing: 1.2,
+                            shadows: [
+                              Shadow(
+                                color: AppColors.primary.withOpacity(0.8),
+                                blurRadius: 12,
+                                offset: const Offset(0, 0),
+                              ),
+                              Shadow(
+                                color: AppColors.secondary.withOpacity(0.6),
+                                blurRadius: 18,
+                                offset: const Offset(0, 0),
+                              ),
+                            ],
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -524,17 +538,6 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
       ),
     );
   }
-  
-  /// Helper method to get security icons
-  IconData _getSecurityIcon(int index) {
-    final icons = [
-      Icons.security,
-      Icons.verified_user,
-      Icons.shield,
-      Icons.lock,
-    ];
-    return icons[index % icons.length];
-  }
 }
 
 /// Custom painter for animated background with gradient and particles
@@ -542,38 +545,41 @@ class BackgroundPainter extends CustomPainter {
   final double animation1Value;
   final double animation2Value;
   final List<Particle> particles;
-  final List<GamepadParticle> gamepadParticles; 
+  final List<GamepadParticle> gamepadParticles;
+  
+  // Add previous values to compare in shouldRepaint
+  final double _lastAnimation1Value;
+  final double _lastAnimation2Value;
 
   BackgroundPainter({
     required this.animation1Value,
     required this.animation2Value,
     required this.particles,
-    required this.gamepadParticles, 
-  });
+    required this.gamepadParticles,
+  }) : _lastAnimation1Value = animation1Value,
+       _lastAnimation2Value = animation2Value;
 
   @override
   void paint(Canvas canvas, Size size) {
     // Create gradient background with slower shifting effect
     final paint = Paint();
     
-    // Create a dynamic gradient that shifts with animation (slower movement)
+    // Create a simplified gradient with fewer color stops for better performance
     final gradient = LinearGradient(
       begin: Alignment(
-        math.cos(animation1Value) * 0.15, 
-        math.sin(animation1Value) * 0.15,
+        math.cos(animation1Value) * 0.1,
+        math.sin(animation1Value) * 0.1,
       ),
       end: Alignment(
-        math.cos(animation2Value + math.pi) * 0.15,
-        math.sin(animation2Value + math.pi) * 0.15,
+        math.cos(animation2Value + math.pi) * 0.1,
+        math.sin(animation2Value + math.pi) * 0.1,
       ),
       colors: [
-        AppColors.primary.withOpacity(0.9),
-        AppColors.secondary.withOpacity(0.7),
-        Color.lerp(AppColors.primary, AppColors.secondary, 0.5)!.withOpacity(0.8),
-        // Added a fourth color for more dynamic gradient
-        Color.lerp(AppColors.primary, AppColors.info, 0.3)!.withOpacity(0.7),
+        AppColors.primary.withOpacity(0.8),
+        AppColors.secondary.withOpacity(0.6),
+        Color.lerp(AppColors.primary, AppColors.secondary, 0.5)!.withOpacity(0.7),
       ],
-      stops: const [0.0, 0.4, 0.7, 1.0], 
+      stops: const [0.0, 0.5, 1.0],
     );
     
     paint.shader = gradient.createShader(Rect.fromLTWH(0, 0, size.width, size.height));
@@ -581,12 +587,14 @@ class BackgroundPainter extends CustomPainter {
     // Draw background
     canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paint);
     
-    // Draw particles
+    // Draw particles (only if they're visible for better performance)
     for (final particle in particles) {
-      // Draw particle with a subtle glow effect
+      // Skip drawing very small or transparent particles
+      if (particle.radius < 1.0 || particle.opacity < 0.05) continue;
+      
+      // Draw particle with a simplified effect
       final particlePaint = Paint()
-        ..color = Colors.white.withOpacity(particle.opacity)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.0); 
+        ..color = Colors.white.withOpacity(particle.opacity);
       
       canvas.drawCircle(
         particle.position,
@@ -594,10 +602,10 @@ class BackgroundPainter extends CustomPainter {
         particlePaint,
       );
       
-      // Add a smaller, brighter core to some particles for sparkle effect
+      // Add a smaller, brighter core only to larger particles
       if (particle.radius > 2.0) {
         final corePaint = Paint()
-          ..color = Colors.white.withOpacity(particle.opacity * 1.5);
+          ..color = Colors.white.withOpacity(particle.opacity * 1.2);
         
         canvas.drawCircle(
           particle.position,
@@ -607,8 +615,11 @@ class BackgroundPainter extends CustomPainter {
       }
     }
     
-    // Draw gamepad particles for gaming theme
+    // Draw gamepad particles - simplified for better performance
     for (final gamepadParticle in gamepadParticles) {
+      // Skip drawing very transparent particles
+      if (gamepadParticle.opacity < 0.05) continue;
+      
       canvas.save();
       
       // Translate to particle position
@@ -621,9 +632,9 @@ class BackgroundPainter extends CustomPainter {
       final gamepadPaint = Paint()
         ..color = AppColors.primary.withOpacity(gamepadParticle.opacity)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.5;
+        ..strokeWidth = 1.0;
       
-      // Draw gamepad body
+      // Draw gamepad body - simplified shape
       final bodyRect = Rect.fromCenter(
         center: Offset.zero,
         width: gamepadParticle.size,
@@ -635,26 +646,16 @@ class BackgroundPainter extends CustomPainter {
         gamepadPaint,
       );
       
-      // Draw left stick
-      canvas.drawCircle(
-        Offset(-gamepadParticle.size * 0.25, 0),
-        gamepadParticle.size * 0.15,
-        gamepadPaint,
-      );
-      
-      // Draw right stick
-      canvas.drawCircle(
-        Offset(gamepadParticle.size * 0.25, 0),
-        gamepadParticle.size * 0.15,
-        gamepadPaint,
-      );
-      
       canvas.restore();
     }
   }
 
   @override
-  bool shouldRepaint(BackgroundPainter oldDelegate) => true;
+  bool shouldRepaint(BackgroundPainter oldDelegate) {
+    // Only repaint if animation values have changed significantly
+    return (animation1Value - oldDelegate._lastAnimation1Value).abs() > 0.01 ||
+           (animation2Value - oldDelegate._lastAnimation2Value).abs() > 0.01;
+  }
 }
 
 /// Particle class for background effect
@@ -689,53 +690,4 @@ class GamepadParticle {
     required this.rotation,
     required this.rotationSpeed,
   });
-}
-
-/// Binary code painter for security visual effect
-class BinaryCodePainter extends CustomPainter {
-  final Color color;
-  
-  BinaryCodePainter({required this.color});
-  
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
-    
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2;
-    
-    // Draw binary code circle
-    final path = Path();
-    final random = math.Random(42); // Fixed seed for consistent pattern
-    
-    for (int i = 0; i < 360; i += 10) {
-      final angle = i * math.pi / 180;
-      final x = center.dx + radius * math.cos(angle);
-      final y = center.dy + radius * math.sin(angle);
-      
-      // Draw binary digit
-      final digit = random.nextInt(2).toString();
-      final textPainter = TextPainter(
-        text: TextSpan(
-          text: digit,
-          style: TextStyle(color: color, fontSize: 10),
-        ),
-        textDirection: TextDirection.ltr,
-      );
-      
-      textPainter.layout();
-      textPainter.paint(
-        canvas, 
-        Offset(x - textPainter.width / 2, y - textPainter.height / 2),
-      );
-    }
-    
-    canvas.drawPath(path, paint);
-  }
-  
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
