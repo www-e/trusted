@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:trusted/core/constants/app_constants.dart';
 import 'package:trusted/core/theme/colors.dart';
 import 'package:trusted/features/admin/domain/notifiers/admin_notifier.dart';
+import 'package:trusted/features/admin/domain/services/admin_cache_service.dart';
+import 'package:trusted/features/admin/presentation/components/user_edit_form.dart';
+import 'package:trusted/features/admin/presentation/components/user_list_item.dart';
+import 'package:trusted/features/admin/presentation/widgets/empty_state.dart';
 import 'package:trusted/features/auth/domain/models/user_model.dart';
 
 /// Admin screen for editing user data
+/// Redesigned for better mobile experience with a list-detail pattern
 class AdminUsersScreen extends ConsumerStatefulWidget {
   /// Constructor
   const AdminUsersScreen({super.key});
@@ -37,8 +41,12 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
     
     // Load users when the screen is first shown
     Future.microtask(() {
-      ref.read(adminStateProvider.notifier).loadPendingUsers();
-      ref.read(adminStateProvider.notifier).loadApprovedUsers();
+      // Use debouncing to prevent rapid API calls
+      final cacheService = ref.read(adminCacheServiceProvider);
+      cacheService.debounce('load_users', () {
+        ref.read(adminStateProvider.notifier).loadPendingUsers();
+        ref.read(adminStateProvider.notifier).loadApprovedUsers();
+      });
     });
   }
   
@@ -84,20 +92,13 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final adminState = ref.watch(adminStateProvider);
+    final mediaQuery = MediaQuery.of(context);
     
     // Combine both pending and approved users for editing
     final allUsers = [...adminState.pendingUsers, ...adminState.approvedUsers];
     
     // Filter users based on search query
-    final filteredUsers = _searchQuery.isEmpty
-        ? allUsers
-        : allUsers.where((user) {
-            final query = _searchQuery.toLowerCase();
-            return user.name.toLowerCase().contains(query) ||
-                   user.email.toLowerCase().contains(query) ||
-                   user.phoneNumber.toLowerCase().contains(query) ||
-                   user.nickname.toLowerCase().contains(query);
-          }).toList();
+    final filteredUsers = _getFilteredUsers(allUsers);
     
     return SafeArea(
       child: Column(
@@ -118,13 +119,14 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Users info
+                // Header with title
                 Row(
+                  textDirection: TextDirection.rtl,
                   children: [
                     CircleAvatar(
                       backgroundColor: AppColors.primary,
                       radius: 24,
-                      child: Icon(
+                      child: const Icon(
                         Icons.edit,
                         color: Colors.white,
                         size: 24,
@@ -143,7 +145,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                             ),
                           ),
                           Text(
-                            'قم بتحديث معلومات المستخدمين',
+                            'اختر مستخدم من القائمة لتعديل بياناته',
                             style: theme.textTheme.bodyMedium,
                           ),
                         ],
@@ -151,487 +153,193 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
-          
-          // Search section
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: 'بحث عن مستخدم...',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                filled: true,
-                fillColor: theme.brightness == Brightness.light
-                    ? Colors.grey.shade100
-                    : AppColors.darkSurface,
-                contentPadding: const EdgeInsets.symmetric(vertical: 0),
-              ),
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value;
-                });
-              },
-            ),
-          ),
-          
-          // Users list and edit form
-          Expanded(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Users list
-                Expanded(
-                  flex: 1,
-                  child: adminState.isLoading
-                      ? const Center(child: CircularProgressIndicator())
-                      : filteredUsers.isEmpty
-                          ? _buildEmptyState()
-                          : ListView.builder(
-                              padding: const EdgeInsets.all(16),
-                              itemCount: filteredUsers.length,
-                              itemBuilder: (context, index) {
-                                final user = filteredUsers[index];
-                                return _buildUserListItem(user);
-                              },
-                            ),
-                ),
                 
-                // Vertical divider
-                VerticalDivider(
-                  width: 1,
-                  thickness: 1,
-                  color: theme.brightness == Brightness.light
-                      ? AppColors.lightBorder
-                      : AppColors.darkBorder,
-                ),
+                const SizedBox(height: 16),
                 
-                // Edit form
-                Expanded(
-                  flex: 2,
-                  child: _selectedUser == null
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.person_search,
-                                size: 64,
-                                color: theme.brightness == Brightness.light
-                                    ? Colors.grey.shade400
-                                    : Colors.grey.shade700,
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                'اختر مستخدم للتعديل',
-                                style: theme.textTheme.titleMedium,
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
-                          ),
-                        )
-                      : SingleChildScrollView(
-                          padding: const EdgeInsets.all(24),
-                          child: _buildEditForm(),
-                        ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-  
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.people_outline,
-            size: 64,
-            color: Theme.of(context).brightness == Brightness.light
-                ? Colors.grey.shade400
-                : Colors.grey.shade700,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'لا يوجد مستخدمين',
-            style: Theme.of(context).textTheme.titleMedium,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'لم يتم العثور على أي مستخدمين مطابقين لبحثك',
-            style: Theme.of(context).textTheme.bodyMedium,
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-  
-  Widget _buildUserListItem(UserModel user) {
-    final theme = Theme.of(context);
-    final isSelected = _selectedUser?.id == user.id;
-    
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      elevation: 0,
-      color: isSelected
-          ? AppColors.primary.withOpacity(0.1)
-          : theme.brightness == Brightness.light
-              ? Colors.white
-              : AppColors.darkSurface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: isSelected
-              ? AppColors.primary
-              : theme.brightness == Brightness.light
-                  ? AppColors.lightBorder
-                  : AppColors.darkBorder,
-          width: isSelected ? 2 : 1,
-        ),
-      ),
-      child: InkWell(
-        onTap: () {
-          setState(() {
-            _selectedUser = user;
-            _populateFormWithUser(user);
-          });
-        },
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: Row(
-            textDirection: TextDirection.rtl,
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              CircleAvatar(
-                backgroundColor: _getStatusColor(user.status).withOpacity(0.1),
-                child: Text(
-                  user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
-                  style: TextStyle(
-                    color: _getStatusColor(user.status),
-                    fontWeight: FontWeight.bold,
+                // Search field
+                TextField(
+                  textDirection: TextDirection.rtl,
+                  textAlign: TextAlign.right,
+                  decoration: InputDecoration(
+                    hintText: 'بحث عن مستخدم...',
+                    hintTextDirection: TextDirection.rtl,
+                    prefixIcon: const Icon(Icons.search),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                    filled: true,
+                    fillColor: theme.brightness == Brightness.light 
+                        ? Colors.white 
+                        : Colors.black12,
                   ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      user.name,
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Text(
-                      user.email,
-                      style: theme.textTheme.bodySmall,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Text(
-                      _getRoleArabic(user.role),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: _getStatusColor(user.status),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                Icons.chevron_right,
-                color: isSelected ? AppColors.primary : Colors.grey,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-  
-  Widget _buildEditForm() {
-    if (_selectedUser == null) return const SizedBox.shrink();
-    
-    final theme = Theme.of(context);
-    final user = _selectedUser!;
-    
-    return Form(
-      key: _formKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // User header
-          Row(
-            children: [
-              CircleAvatar(
-                backgroundColor: _getStatusColor(user.status).withOpacity(0.1),
-                radius: 32,
-                child: Text(
-                  user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
-                  style: TextStyle(
-                    color: _getStatusColor(user.status),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 24,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'تعديل بيانات المستخدم',
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      _getRoleArabic(user.role),
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        color: _getStatusColor(user.status),
-                      ),
-                    ),
-                    Text(
-                      'تاريخ التسجيل: ${_formatDate(user.createdAt)}',
-                      style: theme.textTheme.bodySmall,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          
-          const SizedBox(height: 24),
-          const Divider(),
-          const SizedBox(height: 24),
-          
-          // Basic information section
-          Text(
-            'المعلومات الأساسية',
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: AppColors.primary,
-            ),
-          ),
-          const SizedBox(height: 16),
-          
-          // Name field
-          TextFormField(
-            controller: _nameController,
-            decoration: const InputDecoration(
-              labelText: 'الاسم الكامل',
-              prefixIcon: Icon(Icons.person),
-            ),
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'الرجاء إدخال الاسم الكامل';
-              }
-              return null;
-            },
-          ),
-          const SizedBox(height: 16),
-          
-          // Email field (disabled)
-          TextFormField(
-            controller: _emailController,
-            decoration: const InputDecoration(
-              labelText: 'البريد الإلكتروني',
-              prefixIcon: Icon(Icons.email),
-            ),
-            enabled: false, // Email cannot be changed
-          ),
-          const SizedBox(height: 16),
-          
-          // Phone number field
-          TextFormField(
-            controller: _phoneController,
-            decoration: const InputDecoration(
-              labelText: 'رقم الهاتف',
-              prefixIcon: Icon(Icons.phone),
-            ),
-            keyboardType: TextInputType.phone,
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'الرجاء إدخال رقم الهاتف';
-              }
-              return null;
-            },
-          ),
-          const SizedBox(height: 16),
-          
-          // Secondary phone number field
-          TextFormField(
-            controller: _secondaryPhoneController,
-            decoration: const InputDecoration(
-              labelText: 'رقم الهاتف الثانوي (اختياري)',
-              prefixIcon: Icon(Icons.phone_android),
-            ),
-            keyboardType: TextInputType.phone,
-          ),
-          const SizedBox(height: 16),
-          
-          // Nickname field
-          TextFormField(
-            controller: _nicknameController,
-            decoration: const InputDecoration(
-              labelText: 'اللقب',
-              prefixIcon: Icon(Icons.person_outline),
-            ),
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'الرجاء إدخال اللقب';
-              }
-              return null;
-            },
-          ),
-          const SizedBox(height: 16),
-          
-          // Country field
-          TextFormField(
-            controller: _countryController,
-            decoration: const InputDecoration(
-              labelText: 'البلد',
-              prefixIcon: Icon(Icons.location_on),
-            ),
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'الرجاء إدخال البلد';
-              }
-              return null;
-            },
-          ),
-          const SizedBox(height: 24),
-          
-          // Role-specific fields
-          if (user.isMerchant) ...[
-            const Divider(),
-            const SizedBox(height: 24),
-            
-            Text(
-              'معلومات التاجر',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: AppColors.primary,
-              ),
-            ),
-            const SizedBox(height: 16),
-            
-            // Business name field
-            TextFormField(
-              controller: _businessNameController,
-              decoration: const InputDecoration(
-                labelText: 'اسم النشاط التجاري',
-                prefixIcon: Icon(Icons.business),
-              ),
-              validator: (value) {
-                if (user.isMerchant && (value == null || value.isEmpty)) {
-                  return 'الرجاء إدخال اسم النشاط التجاري';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            
-            // Business description field
-            TextFormField(
-              controller: _businessDescController,
-              decoration: const InputDecoration(
-                labelText: 'وصف النشاط التجاري',
-                prefixIcon: Icon(Icons.description),
-              ),
-              maxLines: 3,
-              validator: (value) {
-                if (user.isMerchant && (value == null || value.isEmpty)) {
-                  return 'الرجاء إدخال وصف النشاط التجاري';
-                }
-                return null;
-              },
-            ),
-          ],
-          
-          if (user.isMediator) ...[
-            const Divider(),
-            const SizedBox(height: 24),
-            
-            Text(
-              'معلومات الوسيط',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: AppColors.primary,
-              ),
-            ),
-            const SizedBox(height: 16),
-            
-            // WhatsApp number field
-            TextFormField(
-              controller: _whatsappController,
-              decoration: const InputDecoration(
-                labelText: 'رقم الواتساب',
-                prefixIcon: Icon(Icons.phone_android),
-              ),
-              keyboardType: TextInputType.phone,
-              validator: (value) {
-                if (user.isMediator && (value == null || value.isEmpty)) {
-                  return 'الرجاء إدخال رقم الواتساب';
-                }
-                return null;
-              },
-            ),
-          ],
-          
-          const SizedBox(height: 32),
-          
-          // Action buttons
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    setState(() {
-                      _selectedUser = null;
+                  onChanged: (value) {
+                    // Use debouncing to prevent rapid API calls
+                    final cacheService = ref.read(adminCacheServiceProvider);
+                    cacheService.debounce('search_query', () {
+                      setState(() {
+                        _searchQuery = value;
+                      });
                     });
                   },
-                  icon: const Icon(Icons.cancel),
-                  label: const Text('إلغاء'),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: _updateUserData,
-                  icon: const Icon(Icons.save),
-                  label: const Text('حفظ التغييرات'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+              ],
+            ),
+          ),
+          
+          // Main content - User list
+          Expanded(
+            child: adminState.isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : filteredUsers.isEmpty
+                ? const EmptyState(
+                    message: 'لا يوجد مستخدمين مطابقين للبحث',
+                    icon: Icons.person_search,
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: filteredUsers.length,
+                    itemBuilder: (context, index) {
+                      final user = filteredUsers[index];
+                      return UserListItem(
+                        user: user,
+                        isSelected: _selectedUser?.id == user.id,
+                        onTap: () {
+                          setState(() {
+                            _selectedUser = user;
+                            _populateFormWithUser(user);
+                          });
+                          
+                          // Show bottom sheet with user edit form on mobile
+                          _showUserEditBottomSheet(context, user);
+                        },
+                      );
+                    },
                   ),
-                ),
-              ),
-            ],
           ),
         ],
       ),
     );
+  }
+  
+  /// Shows a bottom sheet with the user edit form
+  void _showUserEditBottomSheet(BuildContext context, UserModel user) {
+    final theme = Theme.of(context);
+    final mediaQuery = MediaQuery.of(context);
+    
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: mediaQuery.size.height * 0.85,
+        decoration: BoxDecoration(
+          color: theme.scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(24),
+            topRight: Radius.circular(24),
+          ),
+        ),
+        child: Column(
+          children: [
+            // Bottom sheet header
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: theme.brightness == Brightness.light
+                  ? AppColors.primary.withOpacity(0.1)
+                  : AppColors.primary.withOpacity(0.2),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(24),
+                  topRight: Radius.circular(24),
+                ),
+              ),
+              child: Row(
+                textDirection: TextDirection.rtl,
+                children: [
+                  CircleAvatar(
+                    backgroundColor: AppColors.primary,
+                    radius: 20,
+                    child: Text(
+                      user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'تعديل بيانات المستخدم',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        Text(
+                          user.name,
+                          style: theme.textTheme.bodyMedium,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+            ),
+            
+            // Form content
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: UserEditForm(
+                  user: user,
+                  formKey: _formKey,
+                  onSave: () {
+                    _updateUserData();
+                    Navigator.of(context).pop();
+                  },
+                  onCancel: () => Navigator.of(context).pop(),
+                  nameController: _nameController,
+                  emailController: _emailController,
+                  phoneController: _phoneController,
+                  secondaryPhoneController: _secondaryPhoneController,
+                  nicknameController: _nicknameController,
+                  countryController: _countryController,
+                  businessNameController: _businessNameController,
+                  businessDescController: _businessDescController,
+                  whatsappController: _whatsappController,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  /// Filters users based on search query
+  List<UserModel> _getFilteredUsers(List<UserModel> users) {
+    if (_searchQuery.isEmpty) {
+      return users;
+    }
+    
+    final query = _searchQuery.toLowerCase();
+    return users.where((user) {
+      return user.name.toLowerCase().contains(query) ||
+             user.email.toLowerCase().contains(query) ||
+             user.phoneNumber.toLowerCase().contains(query) ||
+             user.nickname.toLowerCase().contains(query);
+    }).toList();
   }
   
   void _updateUserData() {
@@ -679,35 +387,5 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
         }
       });
     }
-  }
-  
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case AppConstants.statusActive:
-        return AppColors.success;
-      case AppConstants.statusPending:
-        return AppColors.warning;
-      case AppConstants.statusRejected:
-        return AppColors.error;
-      default:
-        return Colors.grey;
-    }
-  }
-  
-  String _getRoleArabic(String role) {
-    switch (role) {
-      case AppConstants.roleBuyerSeller:
-        return AppConstants.roleBuyerSellerArabic;
-      case AppConstants.roleMerchant:
-        return AppConstants.roleMerchantArabic;
-      case AppConstants.roleMediator:
-        return AppConstants.roleMediatorArabic;
-      default:
-        return role;
-    }
-  }
-  
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
   }
 }

@@ -1,0 +1,22 @@
+Always add clear, concise comments in every started generated code files block to explain the functionality.
+Optimize Supabase API usage by caching results, debouncing rapid calls, batching requests, lazy-loading non-critical data, and monitoring usage to reduce costs and unnecessary API calls.
+For any Supabase database changes (e.g., adding columns or schema fixes), perform full integration tests with dynamic data, document improvements and design changes, confirm production readiness, and include detailed future enhancement recommendations.
+With every step make sure you analise the code files and make sure you understand the code so you can confidently take the next step.
+Keep files small and modular by splitting code into multiple files when needed, ensuring maintainability.
+Read and understand the comments to fully grasp each component's purpose within the project.
+Plan and think carefully before writing any code to ensure a well-thought-out architecture.
+Code as if you are a senior flutter software engineer with over 20 years of industry experience.
+Strictly adhere to Flutter and Dart best practices, coding standards, and design patterns and flutter architecture and folder structure and clean code.
+(CRITICAL AND IMPORTANT) Write production-ready, real working code without using mock data or placeholders in critical sections.
+Ensure that your code reflects deep expertise in both Flutter and Dart, along with mobile app architectural principles.
+Follow platform-specific guidelines (Material for Android and Cupertino for iOS) for optimal user experience.
+Use robust state management practices such as Provider, Bloc, or Riverpod to maintain clean architecture or match the existed state management.
+Utilize advanced software development tools and technologies to streamline coding, testing, and deployment for Flutter projects.
+Guarantee that the code is clean, efficient, and easy to understand to facilitate rapid development and debugging.
+Maintain a development environment that aligns with your current systems (e.g., Windows 10 64-bit using PowerShell) for streamlined testing and deployment.
+Begin troubleshooting by comprehensively understanding issues, tracing their origins, and assessing how different aspects of the app are affected.
+Avoid adding extraneous code in the primary file (e.g., main.dart); modularize functionality by placing code in appropriate files and directories, ensuring clear separation of concerns.
+Always incorporate comprehensive error handling and user-friendly messages to improve app stability and user experience.
+Prioritize security best practices throughout the code to ensure the app is robust against potential vulnerabilities.
+Regularly refactor the code to optimize readability, efficiency, and scalability, without changing core functionality , but make sure u take my approval first.
+After completing these enhancements, a comprehensive review will be conducted to provide a detailed summary of all improvements, refactorings, and design changes, verify production readiness by confirming full integration, testing, and usage of dynamic data, and offer recommendations for future work including additional features and performance optimizations—ultimately documenting achievements and guiding the next development steps.

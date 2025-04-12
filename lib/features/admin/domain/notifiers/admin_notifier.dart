@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:trusted/core/constants/app_constants.dart';
+import 'package:trusted/features/admin/domain/services/admin_cache_service.dart';
 import 'package:trusted/features/auth/domain/models/user_model.dart';
 import 'package:trusted/features/auth/domain/repositories/auth_repository.dart';
 
@@ -51,18 +52,39 @@ class AdminState {
 class AdminNotifier extends StateNotifier<AdminState> {
   /// Auth repository
   final AuthRepository _authRepository;
+  
+  /// Cache service
+  final AdminCacheService _cacheService;
 
   /// Constructor
-  AdminNotifier({required AuthRepository authRepository})
+  AdminNotifier({
+    required AuthRepository authRepository,
+    required AdminCacheService cacheService,
+  })
       : _authRepository = authRepository,
+        _cacheService = cacheService,
         super(const AdminState());
 
   /// Load pending users
   Future<void> loadPendingUsers() async {
     try {
+      // Check cache first
+      final cachedUsers = _cacheService.getCachedPendingUsers();
+      if (cachedUsers != null) {
+        state = state.copyWith(
+          pendingUsers: cachedUsers,
+          isLoading: false,
+          errorMessage: null,
+        );
+        return;
+      }
+      
       state = state.copyWith(isLoading: true, errorMessage: null);
       
       final pendingUsers = await _authRepository.getPendingUsers();
+      
+      // Update cache
+      _cacheService.updatePendingUsersCache(pendingUsers);
       
       state = state.copyWith(
         isLoading: false,
@@ -79,6 +101,26 @@ class AdminNotifier extends StateNotifier<AdminState> {
   /// Load approved users (for history)
   Future<void> loadApprovedUsers() async {
     try {
+      // Check cache first
+      final cachedUsers = _cacheService.getCachedApprovedUsers();
+      if (cachedUsers != null) {
+        // Calculate how many users were approved today
+        final today = DateTime.now();
+        final startOfDay = DateTime(today.year, today.month, today.day);
+        
+        final approvedToday = cachedUsers.where((user) {
+          return user.acceptedAt?.isAfter(startOfDay) ?? false;
+        }).length;
+        
+        state = state.copyWith(
+          approvedUsers: cachedUsers,
+          approvedTodayCount: approvedToday,
+          isLoading: false,
+          errorMessage: null,
+        );
+        return;
+      }
+      
       state = state.copyWith(isLoading: true, errorMessage: null);
       
       final approvedUsers = await _authRepository.getApprovedUsers();
@@ -88,11 +130,12 @@ class AdminNotifier extends StateNotifier<AdminState> {
       final startOfDay = DateTime(today.year, today.month, today.day);
       
       final approvedToday = approvedUsers.where((user) {
-        // Check if the user was approved today
-        // In a real app, you would have an 'approved_at' field
-        // For now, we'll use createdAt as a proxy
-        return user.createdAt.isAfter(startOfDay);
+        // Check if the user was approved today using acceptedAt field
+        return user.acceptedAt?.isAfter(startOfDay) ?? false;
       }).length;
+      
+      // Update cache
+      _cacheService.updateApprovedUsersCache(approvedUsers);
       
       state = state.copyWith(
         isLoading: false,
@@ -126,18 +169,22 @@ class AdminNotifier extends StateNotifier<AdminState> {
         updatedPendingUsers.removeWhere((user) => user.id == userId);
         
         // Add the approved user to the approved list with updated status and acceptedAt
+        final now = DateTime.now();
         final updatedApprovedUsers = [...state.approvedUsers, 
           approvedUser.copyWith(
             status: AppConstants.statusActive,
-            acceptedAt: DateTime.now(),
+            acceptedAt: now,
           )
         ];
         
         // Increment the approved today count if the user was approved today
-        final today = DateTime.now();
+        final today = now;
         final startOfDay = DateTime(today.year, today.month, today.day);
-        final approvedTodayCount = state.approvedTodayCount + 
-            (approvedUser.createdAt.isAfter(startOfDay) ? 1 : 0);
+        final approvedTodayCount = state.approvedTodayCount + 1; // Always increment since we just approved
+        
+        // Update caches
+        _cacheService.updatePendingUsersCache(updatedPendingUsers);
+        _cacheService.updateApprovedUsersCache(updatedApprovedUsers);
         
         state = state.copyWith(
           isLoading: false,
@@ -177,8 +224,14 @@ class AdminNotifier extends StateNotifier<AdminState> {
         final updatedPendingUsers = [...state.pendingUsers];
         updatedPendingUsers.removeWhere((user) => user.id == userId);
         
-        // Add the rejected user to the rejected list (we'll show this in the history)
-        final updatedApprovedUsers = [...state.approvedUsers, rejectedUser.copyWith(status: AppConstants.statusRejected)];
+        // Add the rejected user to the history list with updated status
+        final updatedApprovedUsers = [...state.approvedUsers, 
+          rejectedUser.copyWith(status: AppConstants.statusRejected)
+        ];
+        
+        // Update caches
+        _cacheService.updatePendingUsersCache(updatedPendingUsers);
+        _cacheService.updateApprovedUsersCache(updatedApprovedUsers);
         
         state = state.copyWith(
           isLoading: false,
@@ -240,6 +293,10 @@ class AdminNotifier extends StateNotifier<AdminState> {
           return user;
         }).toList();
         
+        // Update caches
+        _cacheService.updatePendingUsersCache(updatedPendingUsers);
+        _cacheService.updateApprovedUsersCache(updatedApprovedUsers);
+        
         state = state.copyWith(
           isLoading: false,
           pendingUsers: updatedPendingUsers,
@@ -267,5 +324,9 @@ class AdminNotifier extends StateNotifier<AdminState> {
 /// Provider for AdminState
 final adminStateProvider = StateNotifierProvider<AdminNotifier, AdminState>((ref) {
   final authRepository = ref.watch(authRepositoryProvider);
-  return AdminNotifier(authRepository: authRepository);
+  final cacheService = ref.watch(adminCacheServiceProvider);
+  return AdminNotifier(
+    authRepository: authRepository,
+    cacheService: cacheService,
+  );
 });

@@ -30,6 +30,7 @@
 ## 7. Enhanced Sign-Up Process
 - Improve the handling of sign-up data with a focus on better UX.
 - Implement features such as dropdown menus for country selection and other relevant details.
+- the sign up page is very slow and not as fast and smooth as it should be
 
 ## 8. Admin Dashboard Enhancement
 - Add an "Accepted Time" field to the history cards for better tracking of transaction timelines.
