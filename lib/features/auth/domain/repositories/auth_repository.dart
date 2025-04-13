@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:trusted/features/auth/data/services/auth_service.dart';
-import 'package:trusted/features/auth/domain/models/signup_form_model.dart';
+import 'package:trusted/features/auth/domain/models/enhanced_signup_form_model.dart';
 import 'package:trusted/features/auth/domain/models/user_model.dart';
 
 /// Repository for handling authentication operations
@@ -47,7 +47,7 @@ class AuthRepository {
   }
 
   /// Create new user in Supabase
-  Future<UserModel?> createUser(SignupFormModel formData) async {
+  Future<UserModel?> createUser(EnhancedSignupFormModel formData) async {
     return await _authService.createUser(formData);
   }
 

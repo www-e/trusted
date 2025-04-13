@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:trusted/core/constants/app_constants.dart';
 import 'package:trusted/core/theme/colors.dart';
 import 'package:trusted/features/auth/domain/notifiers/auth_notifier.dart';
-import 'package:trusted/features/auth/domain/notifiers/signup_form_notifier.dart';
+import 'package:trusted/features/auth/domain/notifiers/enhanced_signup_notifier.dart';
 
 /// Login screen for the application
 class LoginScreen extends ConsumerStatefulWidget {
@@ -136,7 +136,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     }
                                   }
                                 } else {
-                                  // User doesn't exist, start sign-up flow
+                                  // User doesn't exist, start enhanced sign-up flow
                                   final googleUser = ref.read(authStateProvider.notifier)
                                       .currentUser;
                                       

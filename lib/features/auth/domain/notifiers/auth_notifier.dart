@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:trusted/core/constants/app_constants.dart';
-import 'package:trusted/features/auth/domain/models/signup_form_model.dart';
+import 'package:trusted/features/auth/domain/models/enhanced_signup_form_model.dart';
 import 'package:trusted/features/auth/domain/models/user_model.dart';
 import 'package:trusted/features/auth/domain/repositories/auth_repository.dart';
 
@@ -162,7 +162,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   /// Create new user
-  Future<void> createUser(SignupFormModel formData) async {
+  Future<void> createUser(EnhancedSignupFormModel formData) async {
     try {
       state = state.copyWith(isLoading: true, errorMessage: null);
       

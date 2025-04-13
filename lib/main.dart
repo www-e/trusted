@@ -8,9 +8,13 @@ import 'package:trusted/core/config/env_config.dart';
 import 'package:trusted/core/theme/theme.dart';
 import 'package:trusted/features/admin/presentation/screens/admin_main_screen.dart';
 import 'package:trusted/features/auth/domain/notifiers/auth_notifier.dart';
-import 'package:trusted/features/auth/presentation/screens/confirmation_screen.dart';
-import 'package:trusted/features/auth/presentation/screens/information_entry_screen.dart';
+import 'package:trusted/features/auth/presentation/screens/account_creation_screen.dart';
+import 'package:trusted/features/auth/presentation/screens/basic_info_screen.dart';
+// Removed import for deleted file
+import 'package:trusted/features/auth/presentation/screens/contact_info_screen.dart';
+// Removed import for deleted file
 import 'package:trusted/features/auth/presentation/screens/login_screen.dart';
+import 'package:trusted/features/auth/presentation/screens/photo_upload_screen.dart';
 import 'package:trusted/features/auth/presentation/screens/rejected_screen.dart';
 import 'package:trusted/features/auth/presentation/screens/role_selection_screen.dart';
 import 'package:trusted/features/auth/presentation/screens/waiting_screen.dart';
@@ -93,8 +97,10 @@ class _MyAppState extends ConsumerState<MyApp> {
         '/': (context) => const SplashScreen(),
         '/login': (context) => const LoginScreen(),
         '/signup/role': (context) => const RoleSelectionScreen(),
-        '/signup/information': (context) => const InformationEntryScreen(),
-        '/signup/confirmation': (context) => const ConfirmationScreen(),
+        '/signup/basic-info': (context) => const BasicInfoScreen(),
+        '/signup/contact-info': (context) => const ContactInfoScreen(),
+        '/signup/photo-upload': (context) => const PhotoUploadScreen(),
+        '/signup/account-creation': (context) => const AccountCreationScreen(),
         '/waiting': (context) => const WaitingScreen(),
         '/rejected': (context) => const RejectedScreen(),
         '/home': (context) => const HomeScreen(),
