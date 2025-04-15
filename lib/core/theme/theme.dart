@@ -4,7 +4,7 @@ import 'package:trusted/core/theme/colors.dart';
 
 /// Class that provides theme configuration for the app
 class AppTheme {
-  /// Light theme configuration
+  /// Light theme configuration with modern gamer aesthetics
   static ThemeData lightTheme = ThemeData(
     useMaterial3: true,
     brightness: Brightness.light,
@@ -12,19 +12,27 @@ class AppTheme {
       seedColor: AppColors.primary,
       primary: AppColors.primary,
       secondary: AppColors.secondary,
+      tertiary: AppColors.accent,
       background: AppColors.lightBackground,
       surface: AppColors.lightSurface,
       error: AppColors.error,
+      onPrimary: Colors.white,
+      onSecondary: Colors.white,
+      onTertiary: Colors.white,
+      onBackground: AppColors.darkText,
+      onSurface: AppColors.darkText,
+      onError: Colors.white,
     ),
     scaffoldBackgroundColor: AppColors.lightBackground,
     fontFamily: 'Cairo',
     textTheme: _getTextTheme(Brightness.light),
     appBarTheme: AppBarTheme(
       backgroundColor: AppColors.lightBackground,
-      elevation: 0,
+      elevation: 2,
+      shadowColor: AppColors.primary.withOpacity(0.1),
       centerTitle: true,
       systemOverlayStyle: SystemUiOverlayStyle.dark,
-      iconTheme: IconThemeData(color: AppColors.darkText),
+      iconTheme: IconThemeData(color: AppColors.primary),
       titleTextStyle: TextStyle(
         color: AppColors.darkText,
         fontSize: 20,
@@ -77,7 +85,7 @@ class AppTheme {
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: AppColors.lightSurface,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide.none,
@@ -88,7 +96,7 @@ class AppTheme {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: AppColors.primary, width: 1.5),
+        borderSide: BorderSide(color: AppColors.primary, width: 2.0),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
@@ -96,7 +104,7 @@ class AppTheme {
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: AppColors.error, width: 1.5),
+        borderSide: BorderSide(color: AppColors.error, width: 2.0),
       ),
       labelStyle: TextStyle(
         color: AppColors.darkText.withOpacity(0.7),
@@ -112,10 +120,14 @@ class AppTheme {
         fontSize: 12,
         fontWeight: FontWeight.w500,
       ),
+      // Add subtle shadow for depth
+      isDense: true,
+      floatingLabelBehavior: FloatingLabelBehavior.auto,
     ),
     cardTheme: CardTheme(
       color: AppColors.lightSurface,
-      elevation: 0,
+      elevation: 2,
+      shadowColor: AppColors.primary.withOpacity(0.1),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(color: AppColors.lightBorder),
@@ -181,7 +193,7 @@ class AppTheme {
     ),
   );
 
-  /// Dark theme configuration
+  /// Dark theme configuration with modern gamer aesthetics
   static ThemeData darkTheme = ThemeData(
     useMaterial3: true,
     brightness: Brightness.dark,
@@ -190,9 +202,16 @@ class AppTheme {
       brightness: Brightness.dark,
       primary: AppColors.primary,
       secondary: AppColors.secondary,
+      tertiary: AppColors.accent,
       background: AppColors.darkBackground,
       surface: AppColors.darkSurface,
       error: AppColors.error,
+      onPrimary: Colors.white,
+      onSecondary: Colors.white,
+      onTertiary: Colors.white,
+      onBackground: AppColors.lightText,
+      onSurface: AppColors.lightText,
+      onError: Colors.white,
     ),
     scaffoldBackgroundColor: AppColors.darkBackground,
     fontFamily: 'Cairo',

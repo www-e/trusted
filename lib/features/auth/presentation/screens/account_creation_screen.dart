@@ -3,6 +3,7 @@ import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:trusted/core/constants/app_constants.dart';
+import 'package:trusted/core/theme/colors.dart';
 import 'package:trusted/features/auth/domain/notifiers/enhanced_signup_notifier.dart';
 import 'package:trusted/features/auth/domain/services/user_creation_service.dart';
 import 'package:trusted/features/auth/domain/utils/form_validators.dart';
@@ -22,14 +23,67 @@ class _AccountCreationScreenState extends ConsumerState<AccountCreationScreen> w
   final _formKey = GlobalKey<FormBuilderState>();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final _usernameController = TextEditingController();
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  bool _isCheckingUsername = false;
+  bool _isUsernameAvailable = true;
+  String? _usernameErrorMessage;
 
   @override
   void dispose() {
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _usernameController.dispose();
     super.dispose();
+  }
+  
+  /// Check if username is available
+  Future<void> _checkUsernameAvailability(String username) async {
+    if (username.isEmpty) {
+      setState(() {
+        _isUsernameAvailable = true;
+        _usernameErrorMessage = null;
+      });
+      return;
+    }
+    
+    setState(() {
+      _isCheckingUsername = true;
+      _usernameErrorMessage = null;
+    });
+    
+    try {
+      // Get Supabase client
+      final supabase = Supabase.instance.client;
+      
+      // Check if username exists in the database
+      final response = await supabase
+          .from('users')
+          .select('username')
+          .eq('username', username)
+          .limit(1)
+          .maybeSingle();
+      
+      // Debounce the UI update to prevent flickering
+      await Future.delayed(const Duration(milliseconds: 300));
+      
+      if (mounted) {
+        setState(() {
+          _isCheckingUsername = false;
+          _isUsernameAvailable = response == null;
+          _usernameErrorMessage = !_isUsernameAvailable ? 'اسم المستخدم مستخدم بالفعل' : null;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isCheckingUsername = false;
+          // Don't show error on network issues to avoid confusing the user
+          _isUsernameAvailable = true;
+        });
+      }
+    }
   }
   
   @override
@@ -77,6 +131,17 @@ class _AccountCreationScreenState extends ConsumerState<AccountCreationScreen> w
     
     // Function to handle form submission
     Future<void> _submitForm() async {
+      // Perform a final username availability check before submission
+      await _checkUsernameAvailability(_usernameController.text);
+      
+      if (!_isUsernameAvailable) {
+        // Show error message and return if username is not available
+        setState(() {
+          _usernameErrorMessage = 'اسم المستخدم مستخدم بالفعل';
+        });
+        return;
+      }
+      
       if (_formKey.currentState?.saveAndValidate() ?? false) {
         // Show loading state immediately
         ref.read(provider.notifier).setLoading(true);
@@ -197,22 +262,55 @@ class _AccountCreationScreenState extends ConsumerState<AccountCreationScreen> w
             autovalidateMode: AutovalidateMode.disabled, // Changed to manual validation to improve performance
             child: Column(
               children: [
-                // Username field
+                // Username field with availability check
                 PerformanceUtils.optimizedFormField(
                   FormBuilderTextField(
                     name: 'username',
-                    decoration: const InputDecoration(
+                    controller: _usernameController,
+                    decoration: InputDecoration(
                       labelText: 'اسم المستخدم',
                       prefixIcon: Icon(Icons.person),
-                      hintText: 'أدخل اسم المستخدم للدخول',
+                      hintText: 'أدخل اسم المستخدم الذي تريده',
+                      suffixIcon: _isCheckingUsername
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: Padding(
+                                padding: EdgeInsets.all(8.0),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            )
+                          : _usernameController.text.isNotEmpty
+                              ? Icon(
+                                  _isUsernameAvailable ? Icons.check_circle : Icons.error,
+                                  color: _isUsernameAvailable ? AppColors.success : AppColors.error,
+                                )
+                              : null,
+                      errorText: _usernameErrorMessage,
                     ),
-                    validator: FormValidators.usernameValidator(),
+                    validator: (value) {
+                      // First check if the username meets the basic requirements
+                      final basicValidation = FormValidators.validateUsername(value);
+                      if (basicValidation != null) {
+                        return basicValidation;
+                      }
+                      
+                      // Then check if the username is available
+                      if (!_isUsernameAvailable) {
+                        return 'اسم المستخدم مستخدم بالفعل';
+                      }
+                      
+                      return null;
+                    },
                     onChanged: (value) {
                       if (value != null) {
-                        // Debounce the update to prevent excessive rebuilds
+                        // Debounce the username availability check to prevent excessive API calls
                         PerformanceUtils.debounce(() {
+                          _checkUsernameAvailability(value);
                           ref.read(provider.notifier).updateUsername(value);
-                        })();
+                        }, 500)();
                       }
                     },
                   ),

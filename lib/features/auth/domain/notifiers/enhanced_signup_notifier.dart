@@ -161,6 +161,13 @@ class EnhancedSignupNotifier extends StateNotifier<EnhancedSignupFormState> {
     );
   }
 
+  /// Update email
+  void updateEmail(String email) {
+    state = state.copyWith(
+      formData: state.formData.copyWith(email: email),
+    );
+  }
+
   /// Update phone number
   void updatePhoneNumber(String phoneNumber) {
     state = state.copyWith(

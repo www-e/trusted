@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:trusted/core/constants/app_constants.dart';
+import 'package:trusted/core/theme/colors.dart';
 import 'package:trusted/features/auth/domain/notifiers/enhanced_signup_notifier.dart';
 import 'package:trusted/features/auth/domain/services/user_creation_service.dart';
 import 'package:trusted/features/auth/domain/utils/form_validators.dart';
@@ -20,7 +22,26 @@ class ContactInfoScreen extends ConsumerStatefulWidget {
 
 class _ContactInfoScreenState extends ConsumerState<ContactInfoScreen> with AutomaticKeepAliveClientMixin {
   final _formKey = GlobalKey<FormBuilderState>();
+  final _whatsappController = TextEditingController();
+  final _vodafoneCashController = TextEditingController();
+  final _nicknameController = TextEditingController();
   bool _isInitialized = false;
+  bool _isProcessing = false;
+  
+  @override
+  void initState() {
+    super.initState();
+    // Optimize keyboard appearance
+    SystemChannels.textInput.invokeMethod('TextInput.hide');
+  }
+  
+  @override
+  void dispose() {
+    _whatsappController.dispose();
+    _vodafoneCashController.dispose();
+    _nicknameController.dispose();
+    super.dispose();
+  }
   
   @override
   bool get wantKeepAlive => true;
@@ -77,48 +98,47 @@ class _ContactInfoScreenState extends ConsumerState<ContactInfoScreen> with Auto
       stepLabels: getStepLabels(),
       isNextEnabled: true, // Will be validated on button press
       onNext: () async {
-        // Set loading state
-        ref.read(provider.notifier).setLoading(true);
+        if (_isProcessing) return;
+        
+        setState(() {
+          _isProcessing = true;
+        });
         
         // Run validation on a separate isolate to avoid blocking the UI thread
-        try {
-          if (_formKey.currentState?.saveAndValidate() ?? false) {
-            if (ref.read(provider.notifier).goToNextStep()) {
-              // Create initial user record in the database
-              final userCreationService = UserCreationService();
-              final userId = await userCreationService.createInitialUserRecord(formData);
-              
-              debugPrint('User record created with ID: $userId');
-              
-              // Update user creation status
-              ref.read(provider.notifier).updateUserCreationStatus(UserCreationStatus.initialRecordCreated);
-              
-              // Navigate to the next screen
-              if (mounted) {
-                Navigator.pushReplacementNamed(
-                  context, 
-                  nextRoute,
-                  arguments: (name: formData.name, email: formData.email),
-                );
+        PerformanceUtils.runAsync(() async {
+          try {
+            if (_formKey.currentState?.saveAndValidate() ?? false) {
+              if (ref.read(provider.notifier).goToNextStep()) {
+                // Create initial user record in the database
+                final userCreationService = UserCreationService();
+                final userId = await userCreationService.createInitialUserRecord(formData);
+                
+                debugPrint('User record created with ID: $userId');
+                
+                // Update user creation status
+                ref.read(provider.notifier).updateUserCreationStatus(UserCreationStatus.initialRecordCreated);
+                
+                // Navigate to the next screen
+                if (mounted) {
+                  Navigator.pushReplacementNamed(
+                    context, 
+                    nextRoute,
+                    arguments: (name: formData.name, email: formData.email),
+                  );
+                }
               }
             }
+          } catch (e) {
+            debugPrint('Error: $e');
+          } finally {
+            // Reset loading state
+            if (mounted) {
+              setState(() {
+                _isProcessing = false;
+              });
+            }
           }
-        } catch (e) {
-          // Show error message
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('حدث خطأ أثناء إنشاء الحساب: ${e.toString()}'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-        } finally {
-          // Clear loading state
-          if (mounted) {
-            ref.read(provider.notifier).setLoading(false);
-          }
-        }
+        });
       },
       onBack: () {
         ref.read(provider.notifier).goToPreviousStep();
@@ -135,68 +155,80 @@ class _ContactInfoScreenState extends ConsumerState<ContactInfoScreen> with Auto
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // WhatsApp number field
+            // WhatsApp number field - optimized with controller
             PerformanceUtils.optimizedFormField(
               FormBuilderTextField(
                 name: 'whatsapp_number',
-                decoration: const InputDecoration(
+                controller: _whatsappController..text = formData.whatsappNumber ?? '',
+                decoration: InputDecoration(
                   labelText: 'رقم الواتساب',
-                  prefixIcon: Icon(Icons.chat),
+                  prefixIcon: Icon(Icons.chat, color: AppColors.primary),
                   hintText: 'أدخل رقم الواتساب مع مفتاح الدولة',
+                  filled: true,
+                  fillColor: Colors.white,
                 ),
                 keyboardType: TextInputType.phone,
+                textInputAction: TextInputAction.next,
                 validator: (value) => FormValidators.validatePhoneNumber(value, context),
                 onChanged: (value) {
                   if (value != null) {
                     // Debounce the update to prevent excessive rebuilds
                     PerformanceUtils.debounce(() {
                       ref.read(provider.notifier).updateWhatsappNumber(value);
-                    })();
+                    }, 300)();
                   }
                 },
               ),
             ),
             const SizedBox(height: 16),
             
-            // Vodafone Cash number field
+            // Vodafone Cash number field - optimized with controller
             PerformanceUtils.optimizedFormField(
               FormBuilderTextField(
                 name: 'vodafone_cash_number',
-                decoration: const InputDecoration(
+                controller: _vodafoneCashController..text = formData.vodafoneCashNumber ?? '',
+                decoration: InputDecoration(
                   labelText: 'رقم فودافون كاش',
-                  prefixIcon: Icon(Icons.account_balance_wallet),
+                  prefixIcon: Icon(Icons.account_balance_wallet, color: AppColors.primary),
                   hintText: 'أدخل رقم فودافون كاش مع مفتاح الدولة',
+                  filled: true,
+                  fillColor: Colors.white,
                 ),
                 keyboardType: TextInputType.phone,
+                textInputAction: TextInputAction.next,
                 validator: (value) => FormValidators.validatePhoneNumber(value, context),
                 onChanged: (value) {
                   if (value != null) {
                     // Debounce the update to prevent excessive rebuilds
                     PerformanceUtils.debounce(() {
                       ref.read(provider.notifier).updateVodafoneCashNumber(value);
-                    })();
+                    }, 300)();
                   }
                 },
               ),
             ),
             const SizedBox(height: 16),
             
-            // Nickname field
+            // Nickname field - optimized with controller
             PerformanceUtils.optimizedFormField(
               FormBuilderTextField(
                 name: 'nickname',
-                decoration: const InputDecoration(
+                controller: _nicknameController..text = formData.nickname ?? '',
+                decoration: InputDecoration(
                   labelText: 'اسم الشهرة',
-                  prefixIcon: Icon(Icons.person_outline),
+                  prefixIcon: Icon(Icons.person_outline, color: AppColors.primary),
                   hintText: 'أدخل اسم الشهرة الخاص بك',
+                  filled: true,
+                  fillColor: Colors.white,
                 ),
+                textInputAction: TextInputAction.done,
                 validator: FormValidators.requiredValidator('الرجاء إدخال اسم الشهرة'),
                 onChanged: (value) {
                   if (value != null) {
                     // Debounce the update to prevent excessive rebuilds
                     PerformanceUtils.debounce(() {
                       ref.read(provider.notifier).updateNickname(value);
-                    })();
+                    }, 300)();
                   }
                 },
               ),
@@ -207,21 +239,29 @@ class _ContactInfoScreenState extends ConsumerState<ContactInfoScreen> with Auto
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                borderRadius: BorderRadius.circular(8),
+                color: AppColors.info.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withOpacity(0.05),
+                    blurRadius: 5,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Row(
+                  Row(
                     children: [
-                      Icon(Icons.info, color: Colors.blue),
-                      SizedBox(width: 8),
+                      Icon(Icons.info, color: AppColors.info),
+                      const SizedBox(width: 8),
                       Text(
                         'معلومات هامة',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: Colors.blue,
+                          color: AppColors.info,
+                          fontSize: 16,
                         ),
                       ),
                     ],

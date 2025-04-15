@@ -1,8 +1,10 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:trusted/core/constants/app_constants.dart';
+import 'package:trusted/core/theme/colors.dart';
 import 'package:trusted/features/auth/domain/notifiers/enhanced_signup_notifier.dart';
 import 'package:trusted/features/auth/domain/services/user_creation_service.dart';
 import 'package:trusted/features/auth/domain/utils/performance_utils.dart';
@@ -26,6 +28,25 @@ class _PhotoUploadScreenState extends ConsumerState<PhotoUploadScreen> with Auto
   File? _frontIdPhoto;
   File? _backIdPhoto;
   bool _isLoading = false;
+  bool _isProcessing = false;
+  
+  @override
+  void initState() {
+    super.initState();
+    // Optimize system UI and memory usage
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.dark,
+      systemNavigationBarColor: AppColors.lightBackground,
+      systemNavigationBarIconBrightness: Brightness.dark,
+    ));
+    
+    // Preload image processing capabilities
+    PerformanceUtils.runAsync(() {
+      ImageCache().clear();
+      PaintingBinding.instance.imageCache.clear();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -65,11 +86,13 @@ class _PhotoUploadScreenState extends ConsumerState<PhotoUploadScreen> with Auto
       isNextEnabled: allPhotosUploaded && !_isLoading,
       isLoading: _isLoading,
       onNext: () async {
+        if (_isProcessing) return;
+        
         setState(() {
           _isLoading = true;
+          _isProcessing = true;
         });
         
-        // Use PerformanceUtils to handle heavy operations
         try {
           // Get the current user ID
           final supabase = Supabase.instance.client;
@@ -88,19 +111,23 @@ class _PhotoUploadScreenState extends ConsumerState<PhotoUploadScreen> with Auto
             throw Exception('يجب إكمال الخطوات السابقة أولاً');
           }
           
-          // Compress photos for better performance
-          final selfieCompressed = await PerformanceUtils.compressImage(_selfiePhoto!);  
-          final frontIdCompressed = await PerformanceUtils.compressImage(_frontIdPhoto!);
-          final backIdCompressed = await PerformanceUtils.compressImage(_backIdPhoto!);
+          // Process images in parallel for better performance
+          final futures = [
+            PerformanceUtils.compressImage(_selfiePhoto!),
+            PerformanceUtils.compressImage(_frontIdPhoto!),
+            PerformanceUtils.compressImage(_backIdPhoto!)
+          ];
+          
+          final compressedImages = await Future.wait(futures);
           
           // Upload photos and update user record
           final photoUrls = await userCreationService.uploadUserPhotos(
             userId: user.id,
-            selfiePhoto: selfieCompressed,
-            frontIdPhoto: frontIdCompressed,
-            backIdPhoto: backIdCompressed,
+            selfiePhoto: compressedImages[0],
+            frontIdPhoto: compressedImages[1],
+            backIdPhoto: compressedImages[2],
           );
-          
+        
           // Update the form data with the actual URLs
           ref.read(provider.notifier).updateSelfiePhotoUrl(photoUrls['selfie_photo_url'] ?? '');
           ref.read(provider.notifier).updateFrontIdPhotoUrl(photoUrls['front_id_photo_url'] ?? '');
@@ -109,14 +136,17 @@ class _PhotoUploadScreenState extends ConsumerState<PhotoUploadScreen> with Auto
           // Update user creation status
           ref.read(provider.notifier).updateUserCreationStatus(UserCreationStatus.photosUploaded);
           
-          if (ref.read(provider.notifier).goToNextStep()) {
-            if (mounted) {
-              Navigator.pushReplacementNamed(
-                context, 
-                '/signup/account-creation',
-                arguments: (name: formData.name, email: formData.email),
-              );
-            }
+          // Cache cleanup to free memory after heavy image operations
+          ImageCache().clear();
+          PaintingBinding.instance.imageCache.clear();
+          
+          // Navigate to the next screen
+          if (mounted) {
+            Navigator.pushReplacementNamed(
+              context, 
+              '/signup/create-account',
+              arguments: (name: formData.name, email: formData.email),
+            );
           }
         } catch (e) {
           // Show error message
@@ -125,20 +155,25 @@ class _PhotoUploadScreenState extends ConsumerState<PhotoUploadScreen> with Auto
               SnackBar(
                 content: Text('حدث خطأ أثناء رفع الصور: ${e.toString()}'),
                 backgroundColor: Colors.red,
+                behavior: SnackBarBehavior.floating,
+                margin: const EdgeInsets.all(16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
             );
           }
         } finally {
+          // Clear loading state
           if (mounted) {
             setState(() {
               _isLoading = false;
+              _isProcessing = false;
             });
           }
         }
       },
       onBack: () {
         ref.read(provider.notifier).goToPreviousStep();
-        Navigator.pop(context);
+        Navigator.of(context).pop();
       },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -152,11 +187,11 @@ class _PhotoUploadScreenState extends ConsumerState<PhotoUploadScreen> with Auto
               currentPhoto: _selfiePhoto,
               onPhotoSelected: (file) {
                 // Debounce the state update to prevent excessive rebuilds
-                PerformanceUtils.runAsync(() {
+                PerformanceUtils.debounce(() {
                   setState(() {
                     _selfiePhoto = file;
                   });
-                });
+                }, 300)();
               },
             ),
           ),
@@ -171,11 +206,11 @@ class _PhotoUploadScreenState extends ConsumerState<PhotoUploadScreen> with Auto
               currentPhoto: _frontIdPhoto,
               onPhotoSelected: (file) {
                 // Debounce the state update to prevent excessive rebuilds
-                PerformanceUtils.runAsync(() {
+                PerformanceUtils.debounce(() {
                   setState(() {
                     _frontIdPhoto = file;
                   });
-                });
+                }, 300)();
               },
             ),
           ),
@@ -190,11 +225,11 @@ class _PhotoUploadScreenState extends ConsumerState<PhotoUploadScreen> with Auto
               currentPhoto: _backIdPhoto,
               onPhotoSelected: (file) {
                 // Debounce the state update to prevent excessive rebuilds
-                PerformanceUtils.runAsync(() {
+                PerformanceUtils.debounce(() {
                   setState(() {
                     _backIdPhoto = file;
                   });
-                });
+                }, 300)();
               },
             ),
           ),
@@ -204,21 +239,29 @@ class _PhotoUploadScreenState extends ConsumerState<PhotoUploadScreen> with Auto
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.blue.shade50,
-              borderRadius: BorderRadius.circular(8),
+              color: AppColors.info.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withOpacity(0.05),
+                  blurRadius: 5,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Row(
+                Row(
                   children: [
-                    Icon(Icons.info, color: Colors.blue),
-                    SizedBox(width: 8),
+                    Icon(Icons.info, color: AppColors.info),
+                    const SizedBox(width: 8),
                     Text(
                       'معلومات هامة',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: Colors.blue,
+                        color: AppColors.info,
+                        fontSize: 16,
                       ),
                     ),
                   ],

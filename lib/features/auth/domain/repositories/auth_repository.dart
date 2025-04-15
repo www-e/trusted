@@ -30,6 +30,11 @@ class AuthRepository {
   Future<UserCredential> signInWithEmail(String email, String password) async {
     return await _authService.signInWithEmail(email, password);
   }
+  
+  /// Sign in with username and password
+  Future<UserCredential> signInWithUsername(String username, String password) async {
+    return await _authService.signInWithUsername(username, password);
+  }
 
   /// Sign out
   Future<void> signOut() async {

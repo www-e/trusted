@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:form_builder_validators/form_builder_validators.dart';
 import 'package:trusted/core/constants/app_constants.dart';
+import 'package:trusted/core/theme/colors.dart';
 import 'package:trusted/features/auth/domain/notifiers/enhanced_signup_notifier.dart';
 import 'package:trusted/features/auth/domain/utils/form_validators.dart';
 import 'package:trusted/features/auth/domain/utils/performance_utils.dart';
@@ -19,7 +21,52 @@ class BasicInfoScreen extends ConsumerStatefulWidget {
 
 class _BasicInfoScreenState extends ConsumerState<BasicInfoScreen> with AutomaticKeepAliveClientMixin {
   final _formKey = GlobalKey<FormBuilderState>();
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
   bool _isInitialized = false;
+  bool _isProcessing = false;
+  
+  @override
+  void initState() {
+    super.initState();
+    // Optimize keyboard appearance and system UI
+    SystemChannels.textInput.invokeMethod('TextInput.hide');
+    
+    // Optimize system UI overlay style for better performance
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.dark,
+      systemNavigationBarColor: AppColors.lightBackground,
+      systemNavigationBarIconBrightness: Brightness.dark,
+    ));
+    
+    // Initialize controllers with existing data in the next frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeControllers();
+    });
+  }
+  
+  void _initializeControllers() {
+    if (!_isInitialized && mounted) {
+      final userData = ModalRoute.of(context)?.settings.arguments as ({String name, String email})?;
+      if (userData != null) {
+        _nameController.text = userData.name;
+        _emailController.text = userData.email;
+      }
+      setState(() {
+        _isInitialized = true;
+      });
+    }
+  }
+  
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+    super.dispose();
+  }
   
   @override
   bool get wantKeepAlive => true;
@@ -72,16 +119,40 @@ class _BasicInfoScreenState extends ConsumerState<BasicInfoScreen> with Automati
       stepLabels: getStepLabels(),
       isNextEnabled: true, // Will be validated on button press
       onNext: () {
+        if (_isProcessing) return;
+        
+        setState(() {
+          _isProcessing = true;
+        });
+        
         // Run validation on a separate isolate to avoid blocking the UI thread
-        PerformanceUtils.runAsync(() {
-          if (_formKey.currentState?.saveAndValidate() ?? false) {
-            if (ref.read(provider.notifier).goToNextStep()) {
-              Navigator.pushReplacementNamed(
-                context, 
-                '/signup/contact-info',
-                arguments: (name: formData.name, email: formData.email),
-              );
+        PerformanceUtils.runAsync(() async {
+          try {
+            if (_formKey.currentState?.saveAndValidate() ?? false) {
+              if (ref.read(provider.notifier).goToNextStep()) {
+                if (mounted) {
+                  await Navigator.pushReplacementNamed(
+                    context, 
+                    '/signup/contact-info',
+                    arguments: (name: formData.name, email: formData.email),
+                  );
+                }
+              }
             }
+          } catch (e) {
+            debugPrint('Navigation error: $e');
+          } finally {
+            if (mounted) {
+              setState(() {
+                _isProcessing = false;
+              });
+            }
+          }
+          
+          if (mounted) {
+            setState(() {
+              _isProcessing = false;
+            });
           }
         });
       },
@@ -91,121 +162,149 @@ class _BasicInfoScreenState extends ConsumerState<BasicInfoScreen> with Automati
       },
       child: FormBuilder(
         key: _formKey,
-        initialValue: {
-          'name': formData.name,
-          'email': formData.email,
-          'phone_number': formData.phoneNumber,
-          'country': formData.country,
-        },
-        autovalidateMode: AutovalidateMode.disabled, // Change to manual validation to improve performance
+        autovalidateMode: AutovalidateMode.disabled, // Only validate on submit for better performance
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Name field
-            PerformanceUtils.optimizedFormField(
-              FormBuilderTextField(
-                name: 'name',
-                decoration: const InputDecoration(
-                  labelText: 'الاسم',
-                  prefixIcon: Icon(Icons.person),
-                  hintText: 'أدخل اسمك الكامل',
+            // Name field - with optimized rendering
+            RepaintBoundary(
+              child: PerformanceUtils.optimizedFormField(
+                FormBuilderTextField(
+                  name: 'name',
+                  controller: _nameController,
+                  decoration: InputDecoration(
+                    labelText: 'الاسم الكامل',
+                    prefixIcon: Icon(Icons.person, color: AppColors.primary),
+                    hintText: 'أدخل اسمك الكامل',
+                    filled: true,
+                    fillColor: Colors.white,
+                  ),
+                  textInputAction: TextInputAction.next,
+                  validator: FormValidators.requiredValidator('الرجاء إدخال الاسم'),
+                  onChanged: (value) {
+                    if (value != null) {
+                      // Debounce the update to prevent excessive rebuilds
+                      PerformanceUtils.debounce(() {
+                        ref.read(provider.notifier).updateName(value);
+                      }, 300)();
+                    }
+                  },
                 ),
-                validator: FormValidators.requiredValidator('الرجاء إدخال الاسم'),
-                onChanged: (value) {
-                  if (value != null) {
-                    // Debounce the update to prevent excessive rebuilds
-                    PerformanceUtils.debounce(() {
-                      ref.read(provider.notifier).updateName(value);
-                    })();
-                  }
-                },
               ),
             ),
             const SizedBox(height: 16),
             
-            // Email field (pre-filled from Google and disabled)
-            PerformanceUtils.optimizedFormField(
-              FormBuilderTextField(
-                name: 'email',
-                decoration: const InputDecoration(
-                  labelText: 'البريد الإلكتروني',
-                  prefixIcon: Icon(Icons.email),
-                  hintText: 'أدخل بريدك الإلكتروني',
+            // Email field - with optimized rendering
+            RepaintBoundary(
+              child: PerformanceUtils.optimizedFormField(
+                FormBuilderTextField(
+                  name: 'email',
+                  controller: _emailController,
+                  decoration: InputDecoration(
+                    labelText: 'البريد الإلكتروني',
+                    prefixIcon: Icon(Icons.email, color: AppColors.primary),
+                    hintText: 'أدخل بريدك الإلكتروني',
+                    filled: true,
+                    fillColor: Colors.white,
+                  ),
+                  keyboardType: TextInputType.emailAddress,
+                  textInputAction: TextInputAction.next,
+                  validator: FormBuilderValidators.compose([
+                    FormValidators.requiredValidator('الرجاء إدخال البريد الإلكتروني'),
+                    FormBuilderValidators.email(errorText: 'الرجاء إدخال بريد إلكتروني صحيح'),
+                  ]),
+                  onChanged: (value) {
+                    if (value != null) {
+                      // Debounce the update to prevent excessive rebuilds
+                      PerformanceUtils.debounce(() {
+                        ref.read(provider.notifier).updateEmail(value);
+                      }, 300)();
+                    }
+                  },
                 ),
-                enabled: false, // Disabled because it comes from Google
-                validator: FormValidators.emailValidator(),
               ),
             ),
             const SizedBox(height: 16),
             
-            // Phone number field
+            // Phone number field - optimized with controller
             PerformanceUtils.optimizedFormField(
               FormBuilderTextField(
                 name: 'phone_number',
-                decoration: const InputDecoration(
+                controller: _phoneController,
+                decoration: InputDecoration(
                   labelText: 'رقم الهاتف',
-                  prefixIcon: Icon(Icons.phone),
+                  prefixIcon: Icon(Icons.phone, color: AppColors.primary),
                   hintText: 'أدخل رقم هاتفك مع مفتاح الدولة',
+                  filled: true,
+                  fillColor: Colors.white,
                 ),
                 keyboardType: TextInputType.phone,
+                textInputAction: TextInputAction.next,
                 validator: (value) => FormValidators.validatePhoneNumber(value, context),
                 onChanged: (value) {
                   if (value != null) {
                     // Debounce the update to prevent excessive rebuilds
                     PerformanceUtils.debounce(() {
                       ref.read(provider.notifier).updatePhoneNumber(value);
-                    })();
+                    }, 300)();
                   }
                 },
               ),
             ),
             const SizedBox(height: 16),
             
-            // Country field (dropdown)
-            PerformanceUtils.optimizedFormField(
-              FormBuilderDropdown<String>(
-                name: 'country',
-                decoration: const InputDecoration(
-                  labelText: 'الدولة',
-                  prefixIcon: Icon(Icons.public),
-                  hintText: 'اختر دولتك',
+            // Country field (dropdown) - with optimized rendering
+            RepaintBoundary(
+              child: PerformanceUtils.optimizedFormField(
+                FormBuilderDropdown<String>(
+                  name: 'country',
+                  decoration: InputDecoration(
+                    labelText: 'الدولة',
+                    prefixIcon: Icon(Icons.public, color: AppColors.primary),
+                    hintText: 'اختر دولتك',
+                    filled: true,
+                    fillColor: Colors.white,
+                  ),
+                  validator: FormValidators.requiredValidator('الرجاء اختيار الدولة'),
+                  initialValue: formData.country,
+                  items: const [
+                    DropdownMenuItem(
+                      value: 'مصر',
+                      child: Text('مصر (+20)'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'السعودية',
+                      child: Text('السعودية (+966)'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'الإمارات',
+                      child: Text('الإمارات (+971)'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'الكويت',
+                      child: Text('الكويت (+965)'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'قطر',
+                      child: Text('قطر (+974)'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'البحرين',
+                      child: Text('البحرين (+973)'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'عمان',
+                      child: Text('عمان (+968)'),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) {
+                      PerformanceUtils.debounce(() {
+                        ref.read(provider.notifier).updateCountry(value);
+                      }, 300)();
+                    }
+                  },
                 ),
-                validator: FormValidators.requiredValidator('الرجاء اختيار الدولة'),
-                items: const [
-                  DropdownMenuItem(
-                    value: 'مصر',
-                    child: Text('مصر (+20)'),
-                  ),
-                  DropdownMenuItem(
-                    value: 'السعودية',
-                    child: Text('السعودية (+966)'),
-                  ),
-                  DropdownMenuItem(
-                    value: 'الإمارات',
-                    child: Text('الإمارات (+971)'),
-                  ),
-                  DropdownMenuItem(
-                    value: 'الكويت',
-                    child: Text('الكويت (+965)'),
-                  ),
-                  DropdownMenuItem(
-                    value: 'قطر',
-                    child: Text('قطر (+974)'),
-                  ),
-                  DropdownMenuItem(
-                    value: 'البحرين',
-                    child: Text('البحرين (+973)'),
-                  ),
-                  DropdownMenuItem(
-                    value: 'عمان',
-                    child: Text('عمان (+968)'),
-                  ),
-                ],
-                onChanged: (value) {
-                  if (value != null) {
-                    ref.read(provider.notifier).updateCountry(value);
-                  }
-                },
               ),
             ),
             const SizedBox(height: 24),
@@ -214,21 +313,29 @@ class _BasicInfoScreenState extends ConsumerState<BasicInfoScreen> with Automati
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                borderRadius: BorderRadius.circular(8),
+                color: AppColors.info.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withOpacity(0.05),
+                    blurRadius: 5,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Row(
+                  Row(
                     children: [
-                      Icon(Icons.info, color: Colors.blue),
-                      SizedBox(width: 8),
+                      Icon(Icons.info, color: AppColors.info),
+                      const SizedBox(width: 8),
                       Text(
                         'معلومات هامة',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: Colors.blue,
+                          color: AppColors.info,
+                          fontSize: 16,
                         ),
                       ),
                     ],

@@ -144,6 +144,50 @@ class AuthNotifier extends StateNotifier<AuthState> {
       );
     }
   }
+  
+  /// Sign in with username and password
+  Future<void> signInWithUsername(String username, String password) async {
+    try {
+      state = state.copyWith(isLoading: true, errorMessage: null);
+      
+      final credential = await _authRepository.signInWithUsername(username, password);
+      final userData = await _authRepository.getUserData(credential.user.id);
+      
+      if (userData == null) {
+        throw 'User data not found';
+      }
+      
+      // Check user status
+      if (userData.isRejected) {
+        state = state.copyWith(
+          isLoading: false,
+          user: userData,
+          userExists: true,
+        );
+        return;
+      }
+      
+      if (userData.isPending) {
+        state = state.copyWith(
+          isLoading: false,
+          user: userData,
+          userExists: true,
+        );
+        return;
+      }
+      
+      state = state.copyWith(
+        isLoading: false,
+        user: userData,
+        userExists: true,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: e.toString(),
+      );
+    }
+  }
 
   /// Sign out
   Future<void> signOut() async {

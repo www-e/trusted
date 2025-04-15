@@ -18,7 +18,10 @@ enum AuthProvider {
   google,
   
   /// Email authentication provider
-  email
+  email,
+  
+  /// Username authentication provider
+  username
 }
 
 /// Custom credential class to handle authentication responses
@@ -132,7 +135,7 @@ class AuthService {
       );
       
       if (response.session == null) {
-        throw 'Failed to sign in with email and password';
+        throw 'Failed to sign in with email';
       }
       
       return UserCredential(
@@ -143,6 +146,65 @@ class AuthService {
     } catch (e) {
       _logger.e('Error signing in with email: $e');
       rethrow;
+    }
+  }
+
+  /// Sign in with username and password
+  Future<UserCredential> signInWithUsername(String username, String password) async {
+    try {
+      _logger.i('Attempting to sign in with username: $username');
+      
+      // First, we need to find the user's email by username
+      // Using maybeSingle() instead of single() to handle case where no user is found
+      final response = await _supabaseClient
+          .from('users')
+          .select('email')
+          .eq('username', username)
+          .maybeSingle();
+      
+      _logger.d('Username lookup response: $response');
+      
+      if (response == null) {
+        _logger.w('No user found with username: $username');
+        throw 'اسم المستخدم غير موجود';
+      }
+      
+      final email = response['email'] as String;
+      _logger.d('Found email for username: $username');
+      
+      // Now sign in with the email and password
+      _logger.d('Attempting to sign in with email and password');
+      final AuthResponse authResponse = 
+          await _supabaseClient.auth.signInWithPassword(
+        email: email,
+        password: password,
+      );
+      
+      if (authResponse.session == null) {
+        _logger.w('Failed to sign in: session is null');
+        throw 'Failed to sign in with username';
+      }
+      
+      _logger.i('Successfully signed in with username: $username');
+      return UserCredential(
+        user: authResponse.user!,
+        session: authResponse.session!,
+        provider: AuthProvider.username,
+      );
+    } catch (e) {
+      _logger.e('Error signing in with username: $e');
+      if (e is PostgrestException) {
+        _logger.e('PostgrestException: ${e.code} - ${e.message}');
+        if (e.code == 'PGRST116') {
+          throw 'اسم المستخدم غير موجود';
+        }
+      } else if (e is AuthException) {
+        _logger.e('AuthException: ${e.statusCode} - ${e.message}');
+        if (e.statusCode == 'invalid_login_credentials') {
+          throw 'كلمة المرور غير صحيحة';
+        }
+      }
+      throw e.toString();
     }
   }
 
