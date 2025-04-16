@@ -16,11 +16,13 @@
 2. **Core Authentication Flow**
    - [✔] Implement ID/Password Sign-In Option (Secondary method)
    - [✔] Add Back Button to Sign-Up Process
-   - [ ] make sure the back button doesnt appear after the user adding pictures so it doesnt add the pictures 2 times ()
+   - [ ] make sure the back button doesnt appear after the user adding 
+   pictures so it doesnt add the pictures 2 times ()
+   - [ ] make sure the back button doesnt return black screen
    - [✔] Country Selection Dropdown (Replace text input)
    - [ ] Universal Form Validations (11 numbers for egypt and other certain number of digits for other countries and fix the size of the deop down)
    - [✔] Re-order how the fields are displayed and prioritize and remove the not needed fields
-   - [ ] add the user name and password obtion to the main auth screen
+   - [✔] add the user name and password obtion to the main auth screen
    - [ ] make sure the colors are changed of the messages for better handling , make sure u alert the user if the name has been taken by already existing user
 
 3. **Database & Storage**

@@ -1,4 +1,65 @@
-i have 2 main problems
+i have these problems Issue Summary:
+I’m encountering a problem while attempting to sign in using an existing username ("omar"), which definitely exists in my Supabase database. However, I receive an error message stating:
+
+javascript
+Copy
+Edit
+🐛 Username lookup response: null  
+⛔ Error signing in with username: اسم المستخدم غير موجود
+The logs are pointing to auth_service.dart at lines 155, 165, 168, and 195, indicating that the user fetch from Supabase is returning null.
+
+🧠 Expected Behavior:
+When the username is valid and exists in the users table, the system should:
+
+Fetch the corresponding user record.
+
+Proceed to password validation and sign-in.
+
+🧪 What Might Be Wrong:
+I'm unsure whether:
+
+The query to Supabase is targeting the correct table or column.
+
+There is a case-sensitivity issue (e.g., Omar vs omar).
+
+The password is being validated incorrectly or not linked to the username.
+
+The Supabase Row Level Security (RLS) policies or API permissions are blocking the read.
+
+There is a mismatch between what the Flutter app expects and how the Supabase tables are structured.
+
+🔎 Request for Analysis & Fix
+Please help me deeply analyze and fix the issue by going through:
+
+✅ 1. Code Understanding
+Review auth_service.dart (especially lines 155–195) and how signInWithUsername is implemented.
+
+Understand how the query is constructed: which table, filter method, and column is being checked (eq('username', username)?).
+
+Check the exact structure of the Supabase response — are you using .single() or .maybeSingle()? Is the null caused by a query failure?
+
+✅ 2. Database Schema & Supabase Setup
+Analyze the users table structure — ensure there is a column named username, and it is populated.
+
+Make sure the username "omar" exists in lowercase or correct case.
+
+Check if any case-insensitive search is needed using ilike instead of eq.
+
+✅ 3. Authentication Flow Logic
+After username lookup, is the password check done correctly?
+
+Is there a second step after lookup where the app fetches password or session data from Supabase?
+
+If you're handling auth manually (not using Supabase's built-in auth), are you validating the credentials properly?
+
+✅ 4. Supabase Rules & Permissions
+Review any RLS (Row Level Security) or policies on the users table.
+
+Are you allowing authenticated users (or anon) to select rows?
+
+Are there any restrictions preventing access based on roles, status, or conditions?
+
+Check API keys used in the app — are they configured with correct permissions
 1-when trying to sign in and adding the username correctly which is actully there in the database , it gives me these errors (D/InsetsController(14136): show(ime(), fromIme=true)
 I/flutter (14136): ┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 I/flutter (14136): │ #0   AuthService.signInWithUsername (package:trusted/features/auth/data/services/auth_service.dart:155:15)
@@ -27,5 +88,41 @@ I/flutter (14136): └───────────────────�
 D/DecorView[](14136): onWindowFocusChanged hasWindowFocus false
 D/DecorView[](14136): onWindowFocusChanged hasWindowFocus true
 ) , i dont know if this related to the password not being in the database tables or something , i dont really understand why is that and why the username isnt there
-2-i have another very weird problem , when i am on the contact_info_screen.dart i am having an issue with adding the phon number , for some weird reson , the text field starts to add randmo numbers and goes physoc mode , while it should be just not doing any thing , i should be adding the data just fine without it moving or behaving weridly 
-3-i am having a problem with the dark mode , the text isnt correctly the correct color for the dark mode , its not visilbe in the sign up pages , lets fix that 
+2-contact_info_screen.dart
+Issue Summary:
+On the contact_info_screen.dart file, I’m encountering a very strange issue. Specifically, when interacting with the phone number input field, the TextField starts auto-inserting random digits or behaving erratically (e.g., shaking, auto-filling, or glitching). This behavior is completely unexpected — it should allow normal manual input only and remain static unless changed by the user.
+
+✅ Expected Behavior:
+The TextField should remain still and allow the user to manually input a phone number without any interference or random character input.
+
+🧠 Request:
+Please:
+
+Analyze the complete widget tree and state management related to the contact_info_screen.dart.
+
+Review the TextField configuration — including the controller, keyboardType, onChanged listeners, and input formatters.
+
+Check if there's any background process, listener, or validator that might be modifying the text unexpectedly.
+
+Ensure that setState, streams, or animation triggers aren’t causing the TextField to rebuild or behave unpredictably.
+
+Suggest a stable and clean fix to keep user input predictable and prevent random input or glitches.
+3-Text Visibility Issue in Dark Mode on Sign-Up Pages
+Issue Summary:
+In dark mode, some text elements — especially on the sign-up screens — are not visible or are too dark to read. It seems the text color isn't dynamically adjusting based on the theme. This breaks the user experience and makes the form unreadable in dark mode.
+
+✅ Expected Behavior:
+All text should automatically switch to a readable color (usually light shades) in dark mode for accessibility and visibility.
+
+🧠 Request:
+Please:
+
+Analyze the theming system and theme settings across the app — especially how ThemeData, TextTheme, and ColorScheme are defined.
+
+Identify whether the sign-up pages are using hardcoded text colors instead of adaptive theme-based ones.
+
+Review if the Theme.of(context).textTheme or colorScheme is being correctly applied to the widgets.
+
+Suggest the best practice for implementing adaptive text color that automatically works with light/dark modes.
+
+Provide a clean, theme-aware fix for the sign-up pages ensuring all text is clearly visible in both themes.

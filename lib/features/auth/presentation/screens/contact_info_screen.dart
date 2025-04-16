@@ -33,6 +33,16 @@ class _ContactInfoScreenState extends ConsumerState<ContactInfoScreen> with Auto
     super.initState();
     // Optimize keyboard appearance
     SystemChannels.textInput.invokeMethod('TextInput.hide');
+    
+    // Initialize controllers with existing data
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        final formData = ref.read(enhancedSignupFormProvider((name: '', email: ''))).formData;
+        _whatsappController.text = formData.whatsappNumber ?? '';
+        _vodafoneCashController.text = formData.vodafoneCashNumber ?? '';
+        _nicknameController.text = formData.nickname ?? '';
+      }
+    });
   }
   
   @override
@@ -156,82 +166,67 @@ class _ContactInfoScreenState extends ConsumerState<ContactInfoScreen> with Auto
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // WhatsApp number field - optimized with controller
-            PerformanceUtils.optimizedFormField(
-              FormBuilderTextField(
-                name: 'whatsapp_number',
-                controller: _whatsappController..text = formData.whatsappNumber ?? '',
-                decoration: InputDecoration(
-                  labelText: 'رقم الواتساب',
-                  prefixIcon: Icon(Icons.chat, color: AppColors.primary),
-                  hintText: 'أدخل رقم الواتساب مع مفتاح الدولة',
-                  filled: true,
-                  fillColor: Colors.white,
-                ),
-                keyboardType: TextInputType.phone,
-                textInputAction: TextInputAction.next,
-                validator: (value) => FormValidators.validatePhoneNumber(value, context),
-                onChanged: (value) {
-                  if (value != null) {
-                    // Debounce the update to prevent excessive rebuilds
-                    PerformanceUtils.debounce(() {
-                      ref.read(provider.notifier).updateWhatsappNumber(value);
-                    }, 300)();
-                  }
-                },
+            FormBuilderTextField(
+              name: 'whatsapp_number',
+              controller: _whatsappController,
+              decoration: InputDecoration(
+                labelText: 'رقم الواتساب',
+                prefixIcon: Icon(Icons.chat, color: AppColors.primary),
+                hintText: 'أدخل رقم الواتساب مع مفتاح الدولة',
+                filled: true,
+                fillColor: Colors.white,
               ),
+              keyboardType: TextInputType.phone,
+              textInputAction: TextInputAction.next,
+              validator: (value) => FormValidators.validatePhoneNumber(value, context),
+              onChanged: (value) {
+                if (value != null) {
+                  ref.read(provider.notifier).updateWhatsappNumber(value);
+                }
+              },
             ),
             const SizedBox(height: 16),
             
             // Vodafone Cash number field - optimized with controller
-            PerformanceUtils.optimizedFormField(
-              FormBuilderTextField(
-                name: 'vodafone_cash_number',
-                controller: _vodafoneCashController..text = formData.vodafoneCashNumber ?? '',
-                decoration: InputDecoration(
-                  labelText: 'رقم فودافون كاش',
-                  prefixIcon: Icon(Icons.account_balance_wallet, color: AppColors.primary),
-                  hintText: 'أدخل رقم فودافون كاش مع مفتاح الدولة',
-                  filled: true,
-                  fillColor: Colors.white,
-                ),
-                keyboardType: TextInputType.phone,
-                textInputAction: TextInputAction.next,
-                validator: (value) => FormValidators.validatePhoneNumber(value, context),
-                onChanged: (value) {
-                  if (value != null) {
-                    // Debounce the update to prevent excessive rebuilds
-                    PerformanceUtils.debounce(() {
-                      ref.read(provider.notifier).updateVodafoneCashNumber(value);
-                    }, 300)();
-                  }
-                },
+            FormBuilderTextField(
+              name: 'vodafone_cash_number',
+              controller: _vodafoneCashController,
+              decoration: InputDecoration(
+                labelText: 'رقم فودافون كاش',
+                prefixIcon: Icon(Icons.account_balance_wallet, color: AppColors.primary),
+                hintText: 'أدخل رقم فودافون كاش مع مفتاح الدولة',
+                filled: true,
+                fillColor: Colors.white,
               ),
+              keyboardType: TextInputType.phone,
+              textInputAction: TextInputAction.next,
+              validator: (value) => FormValidators.validatePhoneNumber(value, context),
+              onChanged: (value) {
+                if (value != null) {
+                  ref.read(provider.notifier).updateVodafoneCashNumber(value);
+                }
+              },
             ),
             const SizedBox(height: 16),
             
             // Nickname field - optimized with controller
-            PerformanceUtils.optimizedFormField(
-              FormBuilderTextField(
-                name: 'nickname',
-                controller: _nicknameController..text = formData.nickname ?? '',
-                decoration: InputDecoration(
-                  labelText: 'اسم الشهرة',
-                  prefixIcon: Icon(Icons.person_outline, color: AppColors.primary),
-                  hintText: 'أدخل اسم الشهرة الخاص بك',
-                  filled: true,
-                  fillColor: Colors.white,
-                ),
-                textInputAction: TextInputAction.done,
-                validator: FormValidators.requiredValidator('الرجاء إدخال اسم الشهرة'),
-                onChanged: (value) {
-                  if (value != null) {
-                    // Debounce the update to prevent excessive rebuilds
-                    PerformanceUtils.debounce(() {
-                      ref.read(provider.notifier).updateNickname(value);
-                    }, 300)();
-                  }
-                },
+            FormBuilderTextField(
+              name: 'nickname',
+              controller: _nicknameController,
+              decoration: InputDecoration(
+                labelText: 'اسم الشهرة',
+                prefixIcon: Icon(Icons.person_outline, color: AppColors.primary),
+                hintText: 'أدخل اسم الشهرة الخاص بك',
+                filled: true,
+                fillColor: Colors.white,
               ),
+              textInputAction: TextInputAction.done,
+              validator: FormValidators.requiredValidator('الرجاء إدخال اسم الشهرة'),
+              onChanged: (value) {
+                if (value != null) {
+                  ref.read(provider.notifier).updateNickname(value);
+                }
+              },
             ),
             const SizedBox(height: 24),
             

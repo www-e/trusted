@@ -144,7 +144,7 @@ class _PhotoUploadScreenState extends ConsumerState<PhotoUploadScreen> with Auto
           if (mounted) {
             Navigator.pushReplacementNamed(
               context, 
-              '/signup/create-account',
+              '/signup/account-creation',
               arguments: (name: formData.name, email: formData.email),
             );
           }

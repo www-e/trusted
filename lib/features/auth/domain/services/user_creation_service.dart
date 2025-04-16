@@ -106,16 +106,67 @@ class UserCreationService {
     required String password,
   }) async {
     try {
+      debugPrint('Starting user credentials update for userId: $userId');
+      
+      // First, verify the username is not already taken
+      final usernameCheck = await _supabaseClient
+          .from('users')
+          .select('id')
+          .eq('username', username)
+          .neq('id', userId) // Exclude current user
+          .maybeSingle();
+      
+      if (usernameCheck != null) {
+        debugPrint('Username $username is already taken by another user');
+        throw Exception('اسم المستخدم مستخدم بالفعل');
+      }
+      
+      debugPrint('Username $username is available, updating user record');
+      
       // Update the username in the database
       await _supabaseClient.from('users').update({
         'username': username,
       }).eq('id', userId);
       
-      // Note: Password is handled by Supabase Auth, not stored in the database
-      // We don't need to do anything with the password here as it's already
-      // associated with the user's auth account
+      debugPrint('Username updated successfully in database');
       
-      debugPrint('User credentials updated: $userId');
+      // Get the user's email from the database
+      final userResponse = await _supabaseClient
+          .from('users')
+          .select('email')
+          .eq('id', userId)
+          .single();
+      
+      final email = userResponse['email'] as String;
+      debugPrint('Retrieved email for user: $email');
+      
+      // Update the password in Supabase Auth
+      // This is necessary because the password needs to be associated with the auth account
+      final updateResponse = await _supabaseClient.auth.updateUser(
+        UserAttributes(password: password),
+      );
+      
+      if (updateResponse.user != null) {
+        debugPrint('Password updated successfully in Supabase Auth');
+      } else {
+        debugPrint('Warning: Password update may have failed, no user returned');
+      }
+      
+      // Verify the username was saved correctly
+      final verifyUpdate = await _supabaseClient
+          .from('users')
+          .select('username')
+          .eq('id', userId)
+          .single();
+      
+      final savedUsername = verifyUpdate['username'] as String?;
+      if (savedUsername != username) {
+        debugPrint('Warning: Username verification failed. Expected: $username, Got: $savedUsername');
+      } else {
+        debugPrint('Username verification successful: $savedUsername');
+      }
+      
+      debugPrint('User credentials updated successfully: $userId');
       
     } catch (e) {
       debugPrint('Error updating user credentials: $e');

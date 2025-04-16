@@ -154,11 +154,10 @@ class AuthService {
     try {
       _logger.i('Attempting to sign in with username: $username');
       
-      // First, we need to find the user's email by username
-      // Using maybeSingle() instead of single() to handle case where no user is found
+      // Find the user's email by username (case-sensitive for production security)
       final response = await _supabaseClient
           .from('users')
-          .select('email')
+          .select('email, id, username')
           .eq('username', username)
           .maybeSingle();
       
@@ -170,7 +169,16 @@ class AuthService {
       }
       
       final email = response['email'] as String;
-      _logger.d('Found email for username: $username');
+      final userId = response['id'] as String;
+      final storedUsername = response['username'] as String;
+      
+      // Double check the username matches exactly (case-sensitive)
+      if (storedUsername != username) {
+        _logger.w('Username case mismatch: $username vs $storedUsername');
+        throw 'اسم المستخدم غير موجود';
+      }
+      
+      _logger.d('Found email for username: $username, userId: $userId');
       
       // Now sign in with the email and password
       _logger.d('Attempting to sign in with email and password');

@@ -166,146 +166,169 @@ class _BasicInfoScreenState extends ConsumerState<BasicInfoScreen> with Automati
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Name field - with optimized rendering
-            RepaintBoundary(
-              child: PerformanceUtils.optimizedFormField(
-                FormBuilderTextField(
-                  name: 'name',
-                  controller: _nameController,
-                  decoration: InputDecoration(
-                    labelText: 'الاسم الكامل',
-                    prefixIcon: Icon(Icons.person, color: AppColors.primary),
-                    hintText: 'أدخل اسمك الكامل',
-                    filled: true,
-                    fillColor: Colors.white,
-                  ),
-                  textInputAction: TextInputAction.next,
-                  validator: FormValidators.requiredValidator('الرجاء إدخال الاسم'),
-                  onChanged: (value) {
-                    if (value != null) {
-                      // Debounce the update to prevent excessive rebuilds
-                      PerformanceUtils.debounce(() {
-                        ref.read(provider.notifier).updateName(value);
-                      }, 300)();
-                    }
-                  },
+            // Name field - optimized with controller
+            FormBuilderTextField(
+              name: 'name',
+              controller: _nameController,
+              decoration: InputDecoration(
+                labelText: 'الاسم الكامل',
+                prefixIcon: Icon(Icons.person, color: AppColors.primary),
+                hintText: 'أدخل الاسم الكامل',
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: AppColors.lightBorder),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: AppColors.lightBorder),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: AppColors.primary),
                 ),
               ),
+              validator: FormValidators.requiredValidator('الرجاء إدخال الاسم الكامل'),
+              textInputAction: TextInputAction.next,
+              onChanged: (value) {
+                if (value != null) {
+                  ref.read(provider.notifier).updateName(value);
+                }
+              },
             ),
             const SizedBox(height: 16),
             
-            // Email field - with optimized rendering
-            RepaintBoundary(
-              child: PerformanceUtils.optimizedFormField(
-                FormBuilderTextField(
-                  name: 'email',
-                  controller: _emailController,
-                  decoration: InputDecoration(
-                    labelText: 'البريد الإلكتروني',
-                    prefixIcon: Icon(Icons.email, color: AppColors.primary),
-                    hintText: 'أدخل بريدك الإلكتروني',
-                    filled: true,
-                    fillColor: Colors.white,
-                  ),
-                  keyboardType: TextInputType.emailAddress,
-                  textInputAction: TextInputAction.next,
-                  validator: FormBuilderValidators.compose([
-                    FormValidators.requiredValidator('الرجاء إدخال البريد الإلكتروني'),
-                    FormBuilderValidators.email(errorText: 'الرجاء إدخال بريد إلكتروني صحيح'),
-                  ]),
-                  onChanged: (value) {
-                    if (value != null) {
-                      // Debounce the update to prevent excessive rebuilds
-                      PerformanceUtils.debounce(() {
-                        ref.read(provider.notifier).updateEmail(value);
-                      }, 300)();
-                    }
-                  },
+            // Email field - optimized with controller
+            FormBuilderTextField(
+              name: 'email',
+              controller: _emailController,
+              decoration: InputDecoration(
+                labelText: 'البريد الإلكتروني',
+                prefixIcon: Icon(Icons.email, color: AppColors.primary),
+                hintText: 'أدخل البريد الإلكتروني',
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: AppColors.lightBorder),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: AppColors.lightBorder),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: AppColors.primary),
                 ),
               ),
+              validator: FormBuilderValidators.compose([
+                FormValidators.requiredValidator('الرجاء إدخال البريد الإلكتروني'),
+                FormBuilderValidators.email(errorText: 'الرجاء إدخال بريد إلكتروني صحيح'),
+              ]),
+              keyboardType: TextInputType.emailAddress,
+              textInputAction: TextInputAction.next,
+              onChanged: (value) {
+                if (value != null) {
+                  ref.read(provider.notifier).updateEmail(value);
+                }
+              },
             ),
             const SizedBox(height: 16),
             
-            // Phone number field - optimized with controller
-            PerformanceUtils.optimizedFormField(
-              FormBuilderTextField(
-                name: 'phone_number',
-                controller: _phoneController,
-                decoration: InputDecoration(
-                  labelText: 'رقم الهاتف',
-                  prefixIcon: Icon(Icons.phone, color: AppColors.primary),
-                  hintText: 'أدخل رقم هاتفك مع مفتاح الدولة',
-                  filled: true,
-                  fillColor: Colors.white,
+            // Phone field - optimized with controller
+            FormBuilderTextField(
+              name: 'phone_number',
+              controller: _phoneController,
+              decoration: InputDecoration(
+                labelText: 'رقم الهاتف',
+                prefixIcon: Icon(Icons.phone, color: AppColors.primary),
+                hintText: 'أدخل رقم الهاتف مع مفتاح الدولة',
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: AppColors.lightBorder),
                 ),
-                keyboardType: TextInputType.phone,
-                textInputAction: TextInputAction.next,
-                validator: (value) => FormValidators.validatePhoneNumber(value, context),
-                onChanged: (value) {
-                  if (value != null) {
-                    // Debounce the update to prevent excessive rebuilds
-                    PerformanceUtils.debounce(() {
-                      ref.read(provider.notifier).updatePhoneNumber(value);
-                    }, 300)();
-                  }
-                },
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: AppColors.lightBorder),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: AppColors.primary),
+                ),
               ),
+              validator: (value) => FormValidators.validatePhoneNumber(value, context),
+              keyboardType: TextInputType.phone,
+              textInputAction: TextInputAction.next,
+              onChanged: (value) {
+                if (value != null) {
+                  ref.read(provider.notifier).updatePhoneNumber(value);
+                }
+              },
             ),
             const SizedBox(height: 16),
             
             // Country field (dropdown) - with optimized rendering
-            RepaintBoundary(
-              child: PerformanceUtils.optimizedFormField(
-                FormBuilderDropdown<String>(
-                  name: 'country',
-                  decoration: InputDecoration(
-                    labelText: 'الدولة',
-                    prefixIcon: Icon(Icons.public, color: AppColors.primary),
-                    hintText: 'اختر دولتك',
-                    filled: true,
-                    fillColor: Colors.white,
-                  ),
-                  validator: FormValidators.requiredValidator('الرجاء اختيار الدولة'),
-                  initialValue: formData.country,
-                  items: const [
-                    DropdownMenuItem(
-                      value: 'مصر',
-                      child: Text('مصر (+20)'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'السعودية',
-                      child: Text('السعودية (+966)'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'الإمارات',
-                      child: Text('الإمارات (+971)'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'الكويت',
-                      child: Text('الكويت (+965)'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'قطر',
-                      child: Text('قطر (+974)'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'البحرين',
-                      child: Text('البحرين (+973)'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'عمان',
-                      child: Text('عمان (+968)'),
-                    ),
-                  ],
-                  onChanged: (value) {
-                    if (value != null) {
-                      PerformanceUtils.debounce(() {
-                        ref.read(provider.notifier).updateCountry(value);
-                      }, 300)();
-                    }
-                  },
+            FormBuilderDropdown<String>(
+              name: 'country',
+              decoration: InputDecoration(
+                labelText: 'الدولة',
+                prefixIcon: Icon(Icons.public, color: AppColors.primary),
+                hintText: 'اختر دولتك',
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: AppColors.lightBorder),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: AppColors.lightBorder),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: AppColors.primary),
                 ),
               ),
+              validator: FormValidators.requiredValidator('الرجاء اختيار الدولة'),
+              initialValue: formData.country,
+              items: const [
+                DropdownMenuItem(
+                  value: 'مصر',
+                  child: Text('مصر (+20)'),
+                ),
+                DropdownMenuItem(
+                  value: 'السعودية',
+                  child: Text('السعودية (+966)'),
+                ),
+                DropdownMenuItem(
+                  value: 'الإمارات',
+                  child: Text('الإمارات (+971)'),
+                ),
+                DropdownMenuItem(
+                  value: 'الكويت',
+                  child: Text('الكويت (+965)'),
+                ),
+                DropdownMenuItem(
+                  value: 'قطر',
+                  child: Text('قطر (+974)'),
+                ),
+                DropdownMenuItem(
+                  value: 'البحرين',
+                  child: Text('البحرين (+973)'),
+                ),
+                DropdownMenuItem(
+                  value: 'عمان',
+                  child: Text('عمان (+968)'),
+                ),
+              ],
+              onChanged: (value) {
+                if (value != null) {
+                  ref.read(provider.notifier).updateCountry(value);
+                }
+              },
             ),
             const SizedBox(height: 24),
             
