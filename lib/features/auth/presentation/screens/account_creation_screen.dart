@@ -226,9 +226,22 @@ class _AccountCreationScreenState extends ConsumerState<AccountCreationScreen> w
         // Use PerformanceUtils to run the form submission asynchronously
         PerformanceUtils.runAsync(() => _submitForm());
       },
-      onBack: () {
+      onBack: () async {
+        // First update the state in the provider
         ref.read(provider.notifier).goToPreviousStep();
-        Navigator.pop(context);
+        
+        // Save current form data to cache before navigation
+        await ref.read(provider.notifier).cacheFormData();
+        
+        // Then handle navigation with proper focus management
+        // Use pushReplacementNamed for consistent navigation pattern
+        Navigator.pushReplacementNamed(
+          context,
+          selectedRole == AppConstants.roleBuyerSeller
+              ? '/signup/contact-info'
+              : '/signup/photo-upload',
+          arguments: (name: formData.name, email: formData.email),
+        );
       },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -239,9 +252,9 @@ class _AccountCreationScreenState extends ConsumerState<AccountCreationScreen> w
               margin: const EdgeInsets.only(bottom: 16),
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.red.shade50,
+                color: Theme.of(context).brightness == Brightness.dark ? Colors.red.shade900.withOpacity(0.2) : Colors.red.shade50,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.red.shade200),
+                border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? Colors.red.shade800.withOpacity(0.5) : Colors.red.shade200),
               ),
               child: Row(
                 children: [
@@ -264,56 +277,89 @@ class _AccountCreationScreenState extends ConsumerState<AccountCreationScreen> w
               children: [
                 // Username field with availability check
                 PerformanceUtils.optimizedFormField(
-                  FormBuilderTextField(
-                    name: 'username',
-                    controller: _usernameController,
-                    decoration: InputDecoration(
-                      labelText: 'اسم المستخدم',
-                      prefixIcon: Icon(Icons.person),
-                      hintText: 'أدخل اسم المستخدم الذي تريده',
-                      suffixIcon: _isCheckingUsername
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: Padding(
-                                padding: EdgeInsets.all(8.0),
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              ),
-                            )
-                          : _usernameController.text.isNotEmpty
-                              ? Icon(
-                                  _isUsernameAvailable ? Icons.check_circle : Icons.error,
-                                  color: _isUsernameAvailable ? AppColors.success : AppColors.error,
-                                )
-                              : null,
-                      errorText: _usernameErrorMessage,
-                    ),
-                    validator: (value) {
-                      // First check if the username meets the basic requirements
-                      final basicValidation = FormValidators.validateUsername(value);
-                      if (basicValidation != null) {
-                        return basicValidation;
-                      }
-                      
-                      // Then check if the username is available
-                      if (!_isUsernameAvailable) {
-                        return 'اسم المستخدم مستخدم بالفعل';
-                      }
-                      
-                      return null;
-                    },
-                    onChanged: (value) {
-                      if (value != null) {
-                        // Debounce the username availability check to prevent excessive API calls
-                        PerformanceUtils.debounce(() {
-                          _checkUsernameAvailability(value);
-                          ref.read(provider.notifier).updateUsername(value);
-                        }, 500)();
-                      }
-                    },
-                  ),
+// In the FormBuilderTextField for username, the decoration is duplicated and the validator function is incomplete
+// Here's the fixed version:
+
+FormBuilderTextField(
+  name: 'username',
+  controller: _usernameController,
+  decoration: InputDecoration(
+    labelText: 'اسم المستخدم',
+    prefixIcon: Icon(Icons.person, color: AppColors.primary),
+    suffixIcon: _isCheckingUsername
+        ? const SizedBox(
+            width: 20,
+            height: 20,
+            child: Padding(
+              padding: EdgeInsets.all(8.0),
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          )
+        : _usernameController.text.isNotEmpty
+            ? Icon(
+                _isUsernameAvailable
+                    ? Icons.check_circle
+                    : Icons.error,
+                color: _isUsernameAvailable
+                    ? Colors.green
+                    : Colors.red,
+              )
+            : null,
+    errorText: _usernameErrorMessage,
+    filled: true,
+    fillColor: Theme.of(context).brightness == Brightness.dark ? AppColors.darkSurface : Colors.white,
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),
+      borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkBorder : AppColors.lightBorder),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),
+      borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkBorder : AppColors.lightBorder),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),
+      borderSide: BorderSide(color: AppColors.primary),
+    ),
+    errorStyle: TextStyle(
+      color: Theme.of(context).brightness == Brightness.dark ? Colors.red.shade300 : Colors.red,
+      fontWeight: FontWeight.bold,
+    ),
+  ),
+  validator: (value) {
+    if (value == null || value.isEmpty) {
+      return 'الرجاء إدخال اسم المستخدم';
+    }
+    
+    // Username validation rules
+    if (value.length < 3) {
+      return 'يجب أن يتكون اسم المستخدم من 3 أحرف على الأقل';
+    }
+    
+    if (value.length > 20) {
+      return 'يجب أن لا يزيد اسم المستخدم عن 20 حرفًا';
+    }
+    
+    if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(value)) {
+      return 'يمكن استخدام الأحرف والأرقام والشرطة السفلية فقط';
+    }
+    
+    // Then check if the username is available
+    if (!_isUsernameAvailable) {
+      return 'اسم المستخدم مستخدم بالفعل';
+    }
+    
+    return null;
+  },
+  onChanged: (value) {
+    if (value != null) {
+      // Debounce the username availability check to prevent excessive API calls
+      PerformanceUtils.debounce(() {
+        _checkUsernameAvailability(value);
+        ref.read(provider.notifier).updateUsername(value);
+      }, 500)();
+    }
+  },
+),
                 ),
                 const SizedBox(height: 16),
                 
@@ -324,7 +370,7 @@ class _AccountCreationScreenState extends ConsumerState<AccountCreationScreen> w
                     controller: _passwordController,
                     decoration: InputDecoration(
                       labelText: 'كلمة المرور',
-                      prefixIcon: const Icon(Icons.lock),
+                      prefixIcon: Icon(Icons.lock, color: AppColors.primary),
                       hintText: 'أدخل كلمة المرور',
                       suffixIcon: IconButton(
                         icon: Icon(
@@ -335,6 +381,20 @@ class _AccountCreationScreenState extends ConsumerState<AccountCreationScreen> w
                             _obscurePassword = !_obscurePassword;
                           });
                         },
+                      ),
+                      filled: true,
+                      fillColor: Theme.of(context).brightness == Brightness.dark ? AppColors.darkSurface : Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkBorder : AppColors.lightBorder),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkBorder : AppColors.lightBorder),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: AppColors.primary),
                       ),
                     ),
                     obscureText: _obscurePassword,
@@ -360,7 +420,7 @@ class _AccountCreationScreenState extends ConsumerState<AccountCreationScreen> w
                     controller: _confirmPasswordController,
                     decoration: InputDecoration(
                       labelText: 'تأكيد كلمة المرور',
-                      prefixIcon: const Icon(Icons.lock_outline),
+                      prefixIcon: Icon(Icons.lock_outline, color: AppColors.primary),
                       hintText: 'أعد إدخال كلمة المرور',
                       suffixIcon: IconButton(
                         icon: Icon(
@@ -371,6 +431,20 @@ class _AccountCreationScreenState extends ConsumerState<AccountCreationScreen> w
                             _obscureConfirmPassword = !_obscureConfirmPassword;
                           });
                         },
+                      ),
+                      filled: true,
+                      fillColor: Theme.of(context).brightness == Brightness.dark ? AppColors.darkSurface : Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkBorder : AppColors.lightBorder),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkBorder : AppColors.lightBorder),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: AppColors.primary),
                       ),
                     ),
                     obscureText: _obscureConfirmPassword,
@@ -398,7 +472,7 @@ class _AccountCreationScreenState extends ConsumerState<AccountCreationScreen> w
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.blue.shade50,
+              color: Theme.of(context).brightness == Brightness.dark ? Colors.blue.shade900.withOpacity(0.2) : Colors.blue.shade50,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Column(
@@ -439,7 +513,7 @@ class _AccountCreationScreenState extends ConsumerState<AccountCreationScreen> w
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.green.shade50,
+              color: Theme.of(context).brightness == Brightness.dark ? Colors.green.shade900.withOpacity(0.2) : Colors.green.shade50,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Column(

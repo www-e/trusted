@@ -16,6 +16,7 @@
 2. **Core Authentication Flow**
    - [✔] Implement ID/Password Sign-In Option (Secondary method)
    - [✔] Add Back Button to Sign-Up Process
+   - [ ] Investigate how the sign in works and what does it return and how to make the user change the password in the future
    - [ ] make sure the back button doesnt appear after the user adding 
    pictures so it doesnt add the pictures 2 times ()
    - [ ] make sure the back button doesnt return black screen

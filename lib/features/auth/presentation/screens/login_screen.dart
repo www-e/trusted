@@ -34,6 +34,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.dispose();
   }
 
+  /// Get a more user-friendly error message based on the error code
+  String _getDetailedErrorMessage(String errorMessage) {
+    if (errorMessage.contains('Invalid login credentials')) {
+      return 'اسم المستخدم أو كلمة المرور غير صحيحة. يرجى التحقق والمحاولة مرة أخرى.';
+    } else if (errorMessage.contains('Email not confirmed')) {
+      return 'لم يتم تأكيد البريد الإلكتروني بعد. يرجى التحقق من بريدك الإلكتروني وتأكيد حسابك.';
+    } else if (errorMessage.contains('User not found')) {
+      return 'لم يتم العثور على المستخدم. يرجى التأكد من اسم المستخدم أو التسجيل أولاً.';
+    } else if (errorMessage.contains('Too many requests')) {
+      return 'تم تجاوز عدد محاولات تسجيل الدخول المسموح بها. يرجى المحاولة مرة أخرى لاحقاً.';
+    } else if (errorMessage.contains('network')) {
+      return 'حدث خطأ في الاتصال بالخادم. يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.';
+    }
+    return errorMessage;
+  }
+  
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -418,7 +434,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
-                                    authState.errorMessage!,
+                                    _getDetailedErrorMessage(authState.errorMessage!),
                                     style: TextStyle(
                                       color: AppColors.error,
                                       fontWeight: FontWeight.bold,

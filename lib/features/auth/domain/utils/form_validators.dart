@@ -3,7 +3,7 @@ import 'package:form_builder_validators/form_builder_validators.dart';
 
 /// Utility class for form validation functions
 class FormValidators {
-  /// Validate phone number format
+  /// Validate phone number format with country-specific validation
   static String? validatePhoneNumber(String? value, BuildContext context) {
     if (value == null || value.isEmpty) {
       return 'الرجاء إدخال رقم الهاتف';
@@ -17,7 +17,37 @@ class FormValidators {
       return 'الرجاء إدخال رقم هاتف صحيح';
     }
     
-    if (cleanPhone.length < 8) {
+    // Country-specific validation
+    if (cleanPhone.startsWith('+20') || cleanPhone.startsWith('20') || cleanPhone.startsWith('0')) {
+      // Egypt - should be 11 digits (excluding country code)
+      final digitsOnly = cleanPhone.replaceAll(RegExp(r'[^0-9]'), '');
+      final isEgyptMobile = cleanPhone.startsWith('+20') ? digitsOnly.length == 12 : 
+                           cleanPhone.startsWith('20') ? digitsOnly.length == 11 :
+                           cleanPhone.startsWith('0') ? digitsOnly.length == 11 : false;
+      
+      if (!isEgyptMobile) {
+        return 'رقم الهاتف المصري يجب أن يتكون من 11 رقم';
+      }
+    } else if (cleanPhone.startsWith('+966') || cleanPhone.startsWith('966')) {
+      // Saudi Arabia - should be 9 digits (excluding country code)
+      final digitsOnly = cleanPhone.replaceAll(RegExp(r'[^0-9]'), '');
+      final isSaudiMobile = cleanPhone.startsWith('+966') ? digitsOnly.length == 12 : 
+                           cleanPhone.startsWith('966') ? digitsOnly.length == 12 : false;
+      
+      if (!isSaudiMobile) {
+        return 'رقم الهاتف السعودي يجب أن يتكون من 9 أرقام بعد كود الدولة';
+      }
+    } else if (cleanPhone.startsWith('+971') || cleanPhone.startsWith('971')) {
+      // UAE - should be 9 digits (excluding country code)
+      final digitsOnly = cleanPhone.replaceAll(RegExp(r'[^0-9]'), '');
+      final isUAEMobile = cleanPhone.startsWith('+971') ? digitsOnly.length == 12 : 
+                         cleanPhone.startsWith('971') ? digitsOnly.length == 12 : false;
+      
+      if (!isUAEMobile) {
+        return 'رقم الهاتف الإماراتي يجب أن يتكون من 9 أرقام بعد كود الدولة';
+      }
+    } else if (cleanPhone.length < 8) {
+      // Generic validation for other countries
       return 'رقم الهاتف قصير جدًا';
     }
     

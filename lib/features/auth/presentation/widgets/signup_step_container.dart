@@ -62,100 +62,118 @@ class SignupStepContainer extends StatelessWidget {
     final theme = Theme.of(context);
     final FocusScopeNode currentFocus = FocusScope.of(context);
     
-    return Scaffold(
-      // Use resizeToAvoidBottomInset to prevent keyboard from pushing content
-      resizeToAvoidBottomInset: true,
-      appBar: AppBar(
-        title: Text('التسجيل - الخطوة $currentStep من $totalSteps'),
-        centerTitle: true,
-        leading: showBackButton && currentStep > 1
-            ? IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: onBack,
-              )
-            : null,
-      ),
-      // Wrap in GestureDetector to handle taps outside input fields
-      body: GestureDetector(
-        onTap: () {
-          // Only unfocus if not tapping on a text field
+    // Use a combination of PopScope and focus handling for reliable back navigation
+    return PopScope(
+      canPop: false, // Never allow automatic pop to ensure we handle navigation ourselves
+      onPopInvoked: (didPop) {
+        // If the back button is pressed and we have an onBack handler
+        if (!didPop && showBackButton && currentStep > 1 && onBack != null) {
+          // Unfocus any text fields first to prevent keyboard issues
           if (!currentFocus.hasPrimaryFocus) {
             currentFocus.unfocus();
           }
-        },
-        // Add RepaintBoundary to optimize rendering
-        child: RepaintBoundary(
-          child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Progress bar
-                _buildProgressBar(context),
-                
-                const SizedBox(height: 24),
-                
-                // Step title
-                Text(
-                  title,
-                  style: theme.textTheme.headlineMedium,
-                  textAlign: TextAlign.center,
-                ),
-                
-                const SizedBox(height: 8),
-                
-                // Step subtitle
-                Text(
-                  subtitle,
-                  style: theme.textTheme.bodyMedium,
-                  textAlign: TextAlign.center,
-                ),
-                
-                const SizedBox(height: 24),
-                
-                // Step content with performance optimization
-                Expanded(
-                  child: NotificationListener<ScrollNotification>(
-                    onNotification: (ScrollNotification notification) {
-                      // Optimize scroll performance
-                      return true; // Prevents notification bubbling
-                    },
-                    child: SingleChildScrollView(
-                      physics: const ClampingScrollPhysics(), // Better performance than bouncing
-                      child: PerformanceOptimizer().optimizeWidget(child),
+          
+          // Small delay to ensure UI is ready before navigation
+          Future.microtask(() {
+            onBack!();
+          });
+        }
+      },
+      child: Scaffold(
+        // Use resizeToAvoidBottomInset to prevent keyboard from pushing content
+        resizeToAvoidBottomInset: true,
+        appBar: AppBar(
+          title: Text('التسجيل - الخطوة $currentStep من $totalSteps'),
+          centerTitle: true,
+          leading: showBackButton && currentStep > 1
+              ? IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  onPressed: onBack,
+                )
+              : null,
+        ),
+        // Wrap in GestureDetector to handle taps outside input fields
+        body: GestureDetector(
+          onTap: () {
+            // Only unfocus if not tapping on a text field
+            if (!currentFocus.hasPrimaryFocus) {
+              currentFocus.unfocus();
+            }
+          },
+          // Add RepaintBoundary to optimize rendering
+          child: RepaintBoundary(
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Progress bar
+                    _buildProgressBar(context),
+                    
+                    const SizedBox(height: 24),
+                    
+                    // Step title
+                    Text(
+                      title,
+                      style: theme.textTheme.headlineMedium,
+                      textAlign: TextAlign.center,
                     ),
-                  ),
+                    
+                    const SizedBox(height: 8),
+                    
+                    // Step subtitle
+                    Text(
+                      subtitle,
+                      style: theme.textTheme.bodyMedium,
+                      textAlign: TextAlign.center,
+                    ),
+                    
+                    const SizedBox(height: 24),
+                    
+                    // Step content with performance optimization
+                    Expanded(
+                      child: NotificationListener<ScrollNotification>(
+                        onNotification: (ScrollNotification notification) {
+                          // Optimize scroll performance
+                          return true; // Prevents notification bubbling
+                        },
+                        child: SingleChildScrollView(
+                          physics: const ClampingScrollPhysics(), // Better performance than bouncing
+                          child: PerformanceOptimizer().optimizeWidget(child),
+                        ),
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 16),
+                    
+                    // Next button
+                    ElevatedButton(
+                      onPressed: isNextEnabled && !isLoading ? onNext : null,
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: isLoading
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : Text(nextButtonText),
+                    ),
+                  ],
                 ),
-                
-                const SizedBox(height: 16),
-                
-                // Next button
-                ElevatedButton(
-                  onPressed: isNextEnabled && !isLoading ? onNext : null,
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                  ),
-                  child: isLoading
-                      ? const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : Text(nextButtonText),
-                ),
-              ],
+              ),
             ),
           ),
         ),
       ),
-      ),
-    );  // Closing parenthesis for return Scaffold
+    );
   }
 
   /// Build the progress bar widget

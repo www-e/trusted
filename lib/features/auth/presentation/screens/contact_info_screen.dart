@@ -36,12 +36,7 @@ class _ContactInfoScreenState extends ConsumerState<ContactInfoScreen> with Auto
     
     // Initialize controllers with existing data
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        final formData = ref.read(enhancedSignupFormProvider((name: '', email: ''))).formData;
-        _whatsappController.text = formData.whatsappNumber ?? '';
-        _vodafoneCashController.text = formData.vodafoneCashNumber ?? '';
-        _nicknameController.text = formData.nickname ?? '';
-      }
+      _initializeFormFields();
     });
   }
   
@@ -55,6 +50,37 @@ class _ContactInfoScreenState extends ConsumerState<ContactInfoScreen> with Auto
   
   @override
   bool get wantKeepAlive => true;
+  
+  /// Initialize form fields with data from the provider
+  void _initializeFormFields() {
+    if (!mounted) return;
+    
+    // Get user data from route arguments
+    final userData = ModalRoute.of(context)?.settings.arguments as ({String name, String email})?;
+    
+    // Create a provider instance with user data
+    final provider = enhancedSignupFormProvider(userData ?? (name: '', email: ''));
+    
+    // Get the form data from the provider
+    final formData = ref.read(provider).formData;
+    
+    // Set the controller values if they're not empty
+    if (formData.whatsappNumber != null && formData.whatsappNumber!.isNotEmpty) {
+      _whatsappController.text = formData.whatsappNumber!;
+    }
+    
+    if (formData.vodafoneCashNumber != null && formData.vodafoneCashNumber!.isNotEmpty) {
+      _vodafoneCashController.text = formData.vodafoneCashNumber!;
+    }
+    
+    if (formData.nickname != null && formData.nickname!.isNotEmpty) {
+      _nicknameController.text = formData.nickname!;
+    }
+    
+    setState(() {
+      _isInitialized = true;
+    });
+  }
   
   @override
   Widget build(BuildContext context) {
@@ -150,9 +176,20 @@ class _ContactInfoScreenState extends ConsumerState<ContactInfoScreen> with Auto
           }
         });
       },
-      onBack: () {
+      onBack: () async {
+        // First update the state in the provider
         ref.read(provider.notifier).goToPreviousStep();
-        Navigator.pop(context);
+        
+        // Save current form data to cache before navigation
+        await ref.read(provider.notifier).cacheFormData();
+        
+        // Then handle navigation with proper focus management
+        // Use pushReplacementNamed for consistent navigation pattern
+        Navigator.pushReplacementNamed(
+          context,
+          '/signup/basic-info',
+          arguments: (name: formData.name, email: formData.email),
+        );
       },
       child: FormBuilder(
         key: _formKey,
@@ -174,7 +211,19 @@ class _ContactInfoScreenState extends ConsumerState<ContactInfoScreen> with Auto
                 prefixIcon: Icon(Icons.chat, color: AppColors.primary),
                 hintText: 'أدخل رقم الواتساب مع مفتاح الدولة',
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: Theme.of(context).brightness == Brightness.dark ? AppColors.darkSurface : Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkBorder : AppColors.lightBorder),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkBorder : AppColors.lightBorder),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: AppColors.primary),
+                ),
               ),
               keyboardType: TextInputType.phone,
               textInputAction: TextInputAction.next,
@@ -196,7 +245,19 @@ class _ContactInfoScreenState extends ConsumerState<ContactInfoScreen> with Auto
                 prefixIcon: Icon(Icons.account_balance_wallet, color: AppColors.primary),
                 hintText: 'أدخل رقم فودافون كاش مع مفتاح الدولة',
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: Theme.of(context).brightness == Brightness.dark ? AppColors.darkSurface : Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkBorder : AppColors.lightBorder),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkBorder : AppColors.lightBorder),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: AppColors.primary),
+                ),
               ),
               keyboardType: TextInputType.phone,
               textInputAction: TextInputAction.next,
@@ -218,7 +279,19 @@ class _ContactInfoScreenState extends ConsumerState<ContactInfoScreen> with Auto
                 prefixIcon: Icon(Icons.person_outline, color: AppColors.primary),
                 hintText: 'أدخل اسم الشهرة الخاص بك',
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: Theme.of(context).brightness == Brightness.dark ? AppColors.darkSurface : Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkBorder : AppColors.lightBorder),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkBorder : AppColors.lightBorder),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: AppColors.primary),
+                ),
               ),
               textInputAction: TextInputAction.done,
               validator: FormValidators.requiredValidator('الرجاء إدخال اسم الشهرة'),

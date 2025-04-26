@@ -41,9 +41,38 @@ class _BasicInfoScreenState extends ConsumerState<BasicInfoScreen> with Automati
       systemNavigationBarIconBrightness: Brightness.dark,
     ));
     
-    // Initialize controllers with existing data in the next frame
+    // Initialize form fields after the widget is built
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initializeControllers();
+      _initializeFormFields();
+    });
+  }
+  
+  /// Initialize form fields with data from the provider
+  void _initializeFormFields() {
+    // Get user data from route arguments
+    final userData = ModalRoute.of(context)?.settings.arguments as ({String name, String email})?;
+    
+    // Create a provider instance with user data
+    final provider = enhancedSignupFormProvider(userData ?? (name: '', email: ''));
+    
+    // Get the form data from the provider
+    final formData = ref.read(provider).formData;
+    
+    // Set the controller values if they're not empty
+    if (formData.name.isNotEmpty) {
+      _nameController.text = formData.name;
+    }
+    
+    if (formData.email.isNotEmpty) {
+      _emailController.text = formData.email;
+    }
+    
+    if (formData.phoneNumber.isNotEmpty) {
+      _phoneController.text = formData.phoneNumber;
+    }
+    
+    setState(() {
+      _isInitialized = true;
     });
   }
   
@@ -130,6 +159,9 @@ class _BasicInfoScreenState extends ConsumerState<BasicInfoScreen> with Automati
           try {
             if (_formKey.currentState?.saveAndValidate() ?? false) {
               if (ref.read(provider.notifier).goToNextStep()) {
+                // Save current form data to cache before navigation
+                await ref.read(provider.notifier).cacheFormData();
+                
                 if (mounted) {
                   await Navigator.pushReplacementNamed(
                     context, 
@@ -156,9 +188,19 @@ class _BasicInfoScreenState extends ConsumerState<BasicInfoScreen> with Automati
           }
         });
       },
-      onBack: () {
+      onBack: () async {
+        // First update the state in the provider
         ref.read(provider.notifier).goToPreviousStep();
-        Navigator.pop(context);
+        
+        // Save current form data to cache before navigation
+        await ref.read(provider.notifier).cacheFormData();
+        
+        // Then handle navigation with proper focus management
+        // Use pushReplacementNamed for consistent navigation pattern
+        Navigator.pushReplacementNamed(
+          context,
+          '/signup/role',
+        );
       },
       child: FormBuilder(
         key: _formKey,
@@ -175,14 +217,14 @@ class _BasicInfoScreenState extends ConsumerState<BasicInfoScreen> with Automati
                 prefixIcon: Icon(Icons.person, color: AppColors.primary),
                 hintText: 'أدخل الاسم الكامل',
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: Theme.of(context).brightness == Brightness.dark ? AppColors.darkSurface : Colors.white,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: AppColors.lightBorder),
+                  borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkBorder : AppColors.lightBorder),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: AppColors.lightBorder),
+                  borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkBorder : AppColors.lightBorder),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
@@ -208,14 +250,14 @@ class _BasicInfoScreenState extends ConsumerState<BasicInfoScreen> with Automati
                 prefixIcon: Icon(Icons.email, color: AppColors.primary),
                 hintText: 'أدخل البريد الإلكتروني',
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: Theme.of(context).brightness == Brightness.dark ? AppColors.darkSurface : Colors.white,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: AppColors.lightBorder),
+                  borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkBorder : AppColors.lightBorder),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: AppColors.lightBorder),
+                  borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkBorder : AppColors.lightBorder),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
@@ -245,14 +287,14 @@ class _BasicInfoScreenState extends ConsumerState<BasicInfoScreen> with Automati
                 prefixIcon: Icon(Icons.phone, color: AppColors.primary),
                 hintText: 'أدخل رقم الهاتف مع مفتاح الدولة',
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: Theme.of(context).brightness == Brightness.dark ? AppColors.darkSurface : Colors.white,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: AppColors.lightBorder),
+                  borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkBorder : AppColors.lightBorder),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: AppColors.lightBorder),
+                  borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkBorder : AppColors.lightBorder),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
@@ -278,14 +320,14 @@ class _BasicInfoScreenState extends ConsumerState<BasicInfoScreen> with Automati
                 prefixIcon: Icon(Icons.public, color: AppColors.primary),
                 hintText: 'اختر دولتك',
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: Theme.of(context).brightness == Brightness.dark ? AppColors.darkSurface : Colors.white,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: AppColors.lightBorder),
+                  borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkBorder : AppColors.lightBorder),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: AppColors.lightBorder),
+                  borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? AppColors.darkBorder : AppColors.lightBorder),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
