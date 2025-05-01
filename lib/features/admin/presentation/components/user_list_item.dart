@@ -14,6 +14,9 @@ class UserListItem extends StatelessWidget {
   
   /// Whether the item is selected
   final bool isSelected;
+  
+  /// Callback when the block button is pressed
+  final VoidCallback? onBlock;
 
   /// Constructor
   const UserListItem({
@@ -21,6 +24,7 @@ class UserListItem extends StatelessWidget {
     required this.user,
     required this.onTap,
     this.isSelected = false,
+    this.onBlock,
   });
 
   @override
@@ -44,6 +48,17 @@ class UserListItem extends StatelessWidget {
           child: Row(
             textDirection: TextDirection.rtl, // Ensure RTL layout
             children: [
+              // Block button (if provided)
+              if (onBlock != null)
+                IconButton(
+                  icon: const Icon(Icons.block, size: 18),
+                  color: Colors.deepOrange,
+                  tooltip: 'حظر المستخدم',
+                  onPressed: onBlock,
+                  constraints: const BoxConstraints(),
+                  padding: const EdgeInsets.all(4),
+                ),
+                
               // Status badge (right side in RTL)
               StatusBadge(status: user.status),
               

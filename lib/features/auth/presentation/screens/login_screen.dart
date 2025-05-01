@@ -315,7 +315,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                             if (context.mounted) {
                                               Navigator.pushReplacementNamed(
                                                 context, 
-                                                '/admin',
+                                                '/admin/dashboard',
                                               );
                                             }
                                           } else if (user.isActive) {

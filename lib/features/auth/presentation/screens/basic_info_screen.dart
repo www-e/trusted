@@ -158,6 +158,36 @@ class _BasicInfoScreenState extends ConsumerState<BasicInfoScreen> with Automati
         PerformanceUtils.runAsync(() async {
           try {
             if (_formKey.currentState?.saveAndValidate() ?? false) {
+              // Check if the phone number is blocked before proceeding
+              final phoneNumber = _phoneController.text.trim();
+              if (phoneNumber.isNotEmpty) {
+                final isBlocked = await ref.read(provider.notifier).isPhoneNumberBlocked(phoneNumber);
+                
+                if (isBlocked) {
+                  // Show blocked phone number dialog
+                  if (mounted) {
+                    showDialog(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (context) => AlertDialog(
+                        title: const Text('رقم الهاتف محظور'),
+                        content: const Text(
+                          'عذراً، هذا الرقم محظور ولا يمكن استخدامه للتسجيل. '
+                          'إذا كنت تعتقد أن هذا خطأ، يرجى التواصل مع الدعم الفني.',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('حسناً'),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                  return;
+                }
+              }
+              
               if (ref.read(provider.notifier).goToNextStep()) {
                 // Save current form data to cache before navigation
                 await ref.read(provider.notifier).cacheFormData();
@@ -179,12 +209,6 @@ class _BasicInfoScreenState extends ConsumerState<BasicInfoScreen> with Automati
                 _isProcessing = false;
               });
             }
-          }
-          
-          if (mounted) {
-            setState(() {
-              _isProcessing = false;
-            });
           }
         });
       },

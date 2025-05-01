@@ -21,102 +21,153 @@ class HistoryCard extends StatelessWidget {
     final theme = Theme.of(context);
     
     return Card(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: ExpansionTile(
+        tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        leading: CircleAvatar(
+          backgroundColor: AdminFormatters.getStatusColor(user.status).withOpacity(0.1),
+          radius: 20,
+          child: Text(
+            user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
+            style: TextStyle(
+              color: AdminFormatters.getStatusColor(user.status),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        title: Text(
+          user.name,
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        subtitle: Row(
           children: [
-            // User header with avatar and name
-            Row(
-              children: [
-                CircleAvatar(
-                  backgroundColor: AdminFormatters.getStatusColor(user.status).withOpacity(0.1),
-                  radius: 24,
-                  child: Text(
-                    user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
-                    style: TextStyle(
-                      color: AdminFormatters.getStatusColor(user.status),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        user.name,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        AdminFormatters.getRoleArabic(user.role),
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.brightness == Brightness.light
-                              ? Colors.black54
-                              : Colors.white70,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                StatusBadge(status: user.status),
-              ],
+            Text(
+              AdminFormatters.getRoleArabic(user.role),
+              style: theme.textTheme.bodySmall,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-            
-            const Divider(height: 32),
-            
-            // User details
-            DetailRow(
-              icon: Icons.email,
-              label: 'البريد الإلكتروني',
-              value: user.email,
-            ),
-            DetailRow(
-              icon: Icons.person,
-              label: 'اسم المستخدم',
-              value: user.nickname,
-            ),
-            DetailRow(
-              icon: Icons.phone,
-              label: 'رقم الهاتف',
-              value: user.phoneNumber,
-            ),
-            DetailRow(
-              icon: Icons.location_on,
-              label: 'البلد',
-              value: user.country,
-            ),
-            
-            if (user.isMerchant && user.businessName != null) 
-              DetailRow(
-                icon: Icons.business,
-                label: 'اسم النشاط التجاري',
-                value: user.businessName!,
+            const SizedBox(width: 8),
+            Icon(Icons.circle, size: 8, color: AdminFormatters.getStatusColor(user.status)),
+            const SizedBox(width: 4),
+            Text(
+              AdminFormatters.getStatusText(user.status),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: AdminFormatters.getStatusColor(user.status),
+                fontWeight: FontWeight.bold,
               ),
-            
-            DetailRow(
-              icon: Icons.calendar_today,
-              label: 'تاريخ التسجيل',
-              value: AdminFormatters.formatDateTime(user.createdAt),
             ),
-            
-            if (user.acceptedAt != null)
-              DetailRow(
-                icon: Icons.check_circle_outline,
-                label: 'تاريخ التفعيل',
-                value: AdminFormatters.formatDateTime(user.acceptedAt!),
-              ),
           ],
         ),
+        trailing: const Icon(Icons.expand_more),
+        children: [
+          // User details
+          Container(
+            decoration: BoxDecoration(
+              color: theme.brightness == Brightness.light
+                  ? Colors.grey.shade50
+                  : Colors.grey.shade900,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Contact information section
+                Text(
+                  'معلومات الاتصال',
+                  style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                DetailRow(
+                  icon: Icons.email,
+                  label: 'البريد الإلكتروني',
+                  value: user.email,
+                ),
+                DetailRow(
+                  icon: Icons.person,
+                  label: 'اسم المستخدم',
+                  value: user.nickname,
+                ),
+                DetailRow(
+                  icon: Icons.phone,
+                  label: 'رقم الهاتف',
+                  value: user.phoneNumber,
+                ),
+                if (user.secondaryPhoneNumber != null && user.secondaryPhoneNumber!.isNotEmpty)
+                  DetailRow(
+                    icon: Icons.phone_android,
+                    label: 'رقم الهاتف الثانوي',
+                    value: user.secondaryPhoneNumber!,
+                  ),
+                if (user.whatsappNumber != null && user.whatsappNumber!.isNotEmpty)
+                  DetailRow(
+                    icon: Icons.phone_android,
+                    label: 'رقم الواتساب',
+                    value: user.whatsappNumber!,
+                  ),
+                DetailRow(
+                  icon: Icons.location_on,
+                  label: 'البلد',
+                  value: user.country,
+                ),
+                
+                const Divider(height: 24),
+                
+                // Business information (for merchants)
+                if (user.isMerchant) ...[  
+                  Text(
+                    'معلومات النشاط التجاري',
+                    style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  DetailRow(
+                    icon: Icons.business,
+                    label: 'اسم النشاط',
+                    value: user.businessName ?? 'غير متوفر',
+                  ),
+                  if (user.businessDescription != null && user.businessDescription!.isNotEmpty)
+                    DetailRow(
+                      icon: Icons.description,
+                      label: 'وصف النشاط',
+                      value: user.businessDescription!,
+                    ),
+                  DetailRow(
+                    icon: Icons.group,
+                    label: 'يعمل بمفرده',
+                    value: (user.workingSolo ?? true) ? 'نعم' : 'لا',
+                  ),
+                  const Divider(height: 24),
+                ],
+                
+                // Account information
+                Text(
+                  'معلومات الحساب',
+                  style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                DetailRow(
+                  icon: Icons.calendar_today,
+                  label: 'تاريخ التسجيل',
+                  value: AdminFormatters.formatDateTime(user.createdAt),
+                ),
+                if (user.acceptedAt != null)
+                  DetailRow(
+                    icon: Icons.check_circle_outline,
+                    label: 'تاريخ التفعيل',
+                    value: AdminFormatters.formatDateTime(user.acceptedAt!),
+                  ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:trusted/features/admin/domain/models/blacklist_model.dart';
+import 'package:trusted/features/admin/domain/models/primitive_phone_block_model.dart';
 import 'package:trusted/features/auth/data/services/auth_service.dart';
 import 'package:trusted/features/auth/domain/models/enhanced_signup_form_model.dart';
 import 'package:trusted/features/auth/domain/models/user_model.dart';
@@ -74,6 +76,53 @@ class AuthRepository {
   /// Update user data
   Future<bool> updateUserData(UserModel user) async {
     return await _authService.updateUserData(user);
+  }
+  
+  /// Get blacklist entries
+  Future<List<BlacklistModel>> getBlacklistEntries() async {
+    return await _authService.getBlacklistEntries();
+  }
+  
+  /// Get primitive phone blocks
+  Future<List<PrimitivePhoneBlockModel>> getPrimitivePhoneBlocks() async {
+    return await _authService.getPrimitivePhoneBlocks();
+  }
+  
+  /// Add to blacklist
+  Future<String> addToBlacklist({
+    String? userId,
+    String? email,
+    String? phoneNumber,
+    String? deviceId,
+    required String reason,
+  }) async {
+    return await _authService.addToBlacklist(
+      userId: userId,
+      email: email,
+      phoneNumber: phoneNumber,
+      deviceId: deviceId,
+      reason: reason,
+    );
+  }
+  
+  /// Remove from blacklist
+  Future<bool> removeFromBlacklist(String blacklistId) async {
+    return await _authService.removeFromBlacklist(blacklistId);
+  }
+  
+  /// Primitive block phone
+  Future<bool> primitiveBlockPhone(String phoneNumber, String reason) async {
+    return await _authService.primitiveBlockPhone(phoneNumber, reason);
+  }
+  
+  /// Primitive unblock phone
+  Future<bool> primitiveUnblockPhone(String phoneNumber) async {
+    return await _authService.primitiveUnblockPhone(phoneNumber);
+  }
+  
+  /// Check if phone is primitive blocked
+  Future<bool> isPrimitiveBlocked(String phoneNumber) async {
+    return await _authService.isPrimitiveBlocked(phoneNumber);
   }
 }
 

@@ -33,44 +33,127 @@ class _AdminHistoryScreenState extends ConsumerState<AdminHistoryScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Stats section
+          // Compact header with stats
           Container(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
             decoration: BoxDecoration(
               color: theme.brightness == Brightness.light 
                   ? AppColors.primary.withOpacity(0.1) 
                   : AppColors.primary.withOpacity(0.2),
               borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(24),
-                bottomRight: Radius.circular(24),
+                bottomLeft: Radius.circular(16),
+                bottomRight: Radius.circular(16),
               ),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // History info
-                _buildHistoryHeader(theme),
+                // Compact history header
+                Row(
+                  children: [
+                    CircleAvatar(
+                      backgroundColor: AppColors.success,
+                      radius: 18,
+                      child: const Icon(
+                        Icons.history,
+                        color: Colors.white,
+                        size: 18,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'سجل المستخدمين المفعلين',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            'قائمة بجميع المستخدمين الذين تم تفعيل حساباتهم',
+                            style: theme.textTheme.bodySmall,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
                 
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
                 
-                // Stats cards
+                // Stats cards in a more compact layout
                 Row(
                   children: [
                     Expanded(
-                      child: StatCard(
-                        title: 'إجمالي المستخدمين المفعلين',
-                        value: '${adminState.approvedUsers.length}',
-                        icon: Icons.people,
-                        color: AppColors.success,
+                      child: Card(
+                        elevation: 0,
+                        color: AppColors.success.withOpacity(0.1),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                          child: Row(
+                            children: [
+                              Icon(Icons.people, color: AppColors.success, size: 20),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'إجمالي المستخدمين',
+                                      style: theme.textTheme.bodySmall,
+                                    ),
+                                    Text(
+                                      '${adminState.approvedUsers.length}',
+                                      style: theme.textTheme.titleMedium?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.success,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 12),
                     Expanded(
-                      child: StatCard(
-                        title: 'تم تفعيلهم اليوم',
-                        value: '${adminState.approvedTodayCount}',
-                        icon: Icons.today,
-                        color: AppColors.primary,
+                      child: Card(
+                        elevation: 0,
+                        color: AppColors.primary.withOpacity(0.1),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                          child: Row(
+                            children: [
+                              Icon(Icons.today, color: AppColors.primary, size: 20),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'تم تفعيلهم اليوم',
+                                      style: theme.textTheme.bodySmall,
+                                    ),
+                                    Text(
+                                      '${adminState.approvedTodayCount}',
+                                      style: theme.textTheme.titleMedium?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -79,20 +162,22 @@ class _AdminHistoryScreenState extends ConsumerState<AdminHistoryScreen> {
             ),
           ),
           
-          // Filter section
+          // Filter section - more compact
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
             child: Row(
               children: [
                 Expanded(
                   child: TextField(
                     decoration: InputDecoration(
                       hintText: 'بحث عن مستخدم...',
-                      prefixIcon: const Icon(Icons.search),
+                      prefixIcon: const Icon(Icons.search, size: 20),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey.shade300),
                       ),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                      isDense: true,
                     ),
                     onChanged: (value) {
                       setState(() {
@@ -101,32 +186,52 @@ class _AdminHistoryScreenState extends ConsumerState<AdminHistoryScreen> {
                     },
                   ),
                 ),
-                const SizedBox(width: 16),
-                DropdownButton<String>(
-                  value: _filterStatus,
-                  items: [
-                    DropdownMenuItem(
-                      value: 'all',
-                      child: Text('الكل'),
+                const SizedBox(width: 12),
+                Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey.shade300),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: _filterStatus,
+                      icon: const Icon(Icons.arrow_drop_down, size: 20),
+                      isDense: true,
+                      items: [
+                        DropdownMenuItem(
+                          value: 'all',
+                          child: Text('الكل', style: theme.textTheme.bodyMedium),
+                        ),
+                        DropdownMenuItem(
+                          value: 'active',
+                          child: Text('مفعل', style: theme.textTheme.bodyMedium),
+                        ),
+                        DropdownMenuItem(
+                          value: 'rejected',
+                          child: Text('مرفوض', style: theme.textTheme.bodyMedium),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        if (value != null) {
+                          setState(() {
+                            _filterStatus = value;
+                          });
+                        }
+                      },
                     ),
-                    DropdownMenuItem(
-                      value: 'active',
-                      child: Text('مفعل'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'rejected',
-                      child: Text('مرفوض'),
-                    ),
-                  ],
-                  onChanged: (value) {
-                    if (value != null) {
-                      setState(() {
-                        _filterStatus = value;
-                      });
-                    }
-                  },
+                  ),
                 ),
               ],
+            ),
+          ),
+          
+          // User count indicator
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Text(
+              'عدد النتائج: ${filteredUsers.length}',
+              style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey.shade600),
             ),
           ),
           
@@ -140,7 +245,7 @@ class _AdminHistoryScreenState extends ConsumerState<AdminHistoryScreen> {
                         icon: Icons.history,
                       )
                     : ListView.builder(
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.only(top: 4, bottom: 16),
                         itemCount: filteredUsers.length,
                         itemBuilder: (context, index) {
                           final user = filteredUsers[index];

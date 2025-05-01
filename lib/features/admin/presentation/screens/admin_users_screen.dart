@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:trusted/core/theme/colors.dart';
 import 'package:trusted/features/admin/domain/notifiers/admin_notifier.dart';
 import 'package:trusted/features/admin/domain/services/admin_cache_service.dart';
+import 'package:trusted/features/admin/presentation/components/user_card.dart';
 import 'package:trusted/features/admin/presentation/components/user_edit_form.dart';
 import 'package:trusted/features/admin/presentation/components/user_list_item.dart';
 import 'package:trusted/features/admin/presentation/widgets/empty_state.dart';
@@ -86,6 +87,75 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
     _businessNameController.text = user.businessName ?? '';
     _businessDescController.text = user.businessDescription ?? '';
     _whatsappController.text = user.whatsappNumber ?? '';
+  }
+  
+  // Show dialog to block a user
+  void _showBlockUserDialog(UserModel user) {
+    final reasonController = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('تأكيد حظر المستخدم'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('هل أنت متأكد من حظر المستخدم ${user.name}؟'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: reasonController,
+              decoration: const InputDecoration(
+                labelText: 'سبب الحظر',
+                hintText: 'أدخل سبب حظر هذا المستخدم',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 3,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            child: const Text('إلغاء'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (reasonController.text.trim().isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('الرجاء إدخال سبب الحظر'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                return;
+              }
+              
+              Navigator.pop(context);
+              await ref.read(adminStateProvider.notifier).blockUser(
+                user.id,
+                reasonController.text.trim(),
+              );
+              
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('تم حظر المستخدم ${user.name} بنجاح'),
+                    backgroundColor: AppColors.success,
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.deepOrange,
+            ),
+            child: const Text('حظر'),
+          ),
+        ],
+      ),
+    );
   }
   
   @override
@@ -207,12 +277,11 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                         onTap: () {
                           setState(() {
                             _selectedUser = user;
-                            _populateFormWithUser(user);
                           });
-                          
-                          // Show bottom sheet with user edit form on mobile
+                          _populateFormWithUser(user);
                           _showUserEditBottomSheet(context, user);
                         },
+                        onBlock: () => _showBlockUserDialog(user),
                       );
                     },
                   ),

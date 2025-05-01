@@ -16,6 +16,9 @@ class UserCard extends StatelessWidget {
   
   /// Callback when the reject button is pressed
   final VoidCallback onReject;
+  
+  /// Callback when the block button is pressed
+  final VoidCallback? onBlock;
 
   /// Constructor
   const UserCard({
@@ -23,6 +26,7 @@ class UserCard extends StatelessWidget {
     required this.user,
     required this.onApprove,
     required this.onReject,
+    this.onBlock,
   });
 
   @override
@@ -167,6 +171,18 @@ class UserCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
+                if (onBlock != null)
+                  OutlinedButton.icon(
+                    onPressed: onBlock,
+                    icon: const Icon(Icons.block, size: 16),
+                    label: const Text('حظر'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.deepOrange,
+                      side: const BorderSide(color: Colors.deepOrange),
+                    ),
+                  ),
+                if (onBlock != null)
+                  const SizedBox(width: 8),
                 OutlinedButton(
                   onPressed: onReject,
                   style: OutlinedButton.styleFrom(

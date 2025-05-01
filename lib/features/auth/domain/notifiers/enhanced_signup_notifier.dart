@@ -1,9 +1,12 @@
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:trusted/features/auth/domain/models/enhanced_signup_form_model.dart';
+import 'package:trusted/features/auth/domain/models/enhanced_signup_form_state.dart';
+import 'package:trusted/features/auth/domain/services/user_creation_service.dart';
 
 /// Enum to track the user creation status during the multi-step signup process
 enum UserCreationStatus {
@@ -173,6 +176,28 @@ class EnhancedSignupNotifier extends StateNotifier<EnhancedSignupFormState> {
     state = state.copyWith(
       formData: state.formData.copyWith(phoneNumber: phoneNumber),
     );
+  }
+  
+  /// Check if a phone number is blocked
+  Future<bool> isPhoneNumberBlocked(String phoneNumber) async {
+    try {
+      state = state.copyWith(isLoading: true, errorMessage: null);
+      
+      // Get Supabase client
+      final supabase = Supabase.instance.client;
+      
+      // Call the RPC function to check if the phone number is blocked
+      final response = await supabase
+          .rpc('is_primitive_blocked', params: {'phone': phoneNumber});
+      
+      return response as bool;
+    } catch (e) {
+      debugPrint('Error checking if phone number is blocked: $e');
+      // In case of error, we assume the number is not blocked to avoid false positives
+      return false;
+    } finally {
+      state = state.copyWith(isLoading: false);
+    }
   }
 
   /// Update WhatsApp number

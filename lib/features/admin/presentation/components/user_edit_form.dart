@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:trusted/core/theme/colors.dart';
+import 'package:trusted/features/admin/utils/admin_formatters.dart';
 import 'package:trusted/features/auth/domain/models/user_model.dart';
 
 /// A component for editing user data in the admin users screen
@@ -50,6 +52,7 @@ class UserEditForm extends StatefulWidget {
 }
 
 class _UserEditFormState extends State<UserEditForm> {
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -60,6 +63,87 @@ class _UserEditFormState extends State<UserEditForm> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Note about photos
+          Card(
+            margin: const EdgeInsets.only(bottom: 24),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.photo_library, color: AppColors.primary),
+                      const SizedBox(width: 8),
+                      Text(
+                        'ملاحظة حول الصور',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'يمكن مشاهدة صور الهوية الشخصية من خلال قاعدة البيانات المباشرة',
+                    style: TextStyle(fontSize: 14, color: Colors.grey),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          
+          // User ID and status information
+          Card(
+            elevation: 1,
+            margin: EdgeInsets.zero,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('معرف المستخدم', style: theme.textTheme.bodySmall),
+                            Text(user.id, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: AdminFormatters.getStatusColor(user.status).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Text(
+                          AdminFormatters.getStatusText(user.status),
+                          style: TextStyle(
+                            color: AdminFormatters.getStatusColor(user.status),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text('تاريخ التسجيل: ${DateFormat('yyyy-MM-dd HH:mm').format(user.createdAt)}', 
+                       style: theme.textTheme.bodySmall),
+                  if (user.acceptedAt != null)
+                    Text('تاريخ التفعيل: ${DateFormat('yyyy-MM-dd HH:mm').format(user.acceptedAt!)}', 
+                         style: theme.textTheme.bodySmall),
+                ],
+              ),
+            ),
+          ),
+          
+          const SizedBox(height: 24),
           // Form title
           Text(
             'تعديل بيانات المستخدم',
@@ -179,6 +263,49 @@ class _UserEditFormState extends State<UserEditForm> {
             },
           ),
           
+          // Contact information section
+          const SizedBox(height: 16),
+          
+          TextFormField(
+            controller: widget.phoneController,
+            decoration: const InputDecoration(
+              labelText: 'رقم الهاتف',
+              border: OutlineInputBorder(),
+              prefixIcon: Icon(Icons.phone),
+            ),
+            keyboardType: TextInputType.phone,
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'الرجاء إدخال رقم الهاتف';
+              }
+              return null;
+            },
+          ),
+          
+          const SizedBox(height: 16),
+          
+          TextFormField(
+            controller: widget.secondaryPhoneController,
+            decoration: const InputDecoration(
+              labelText: 'رقم الهاتف الثانوي (اختياري)',
+              border: OutlineInputBorder(),
+              prefixIcon: Icon(Icons.phone_android),
+            ),
+            keyboardType: TextInputType.phone,
+          ),
+          
+          const SizedBox(height: 16),
+          
+          TextFormField(
+            controller: widget.whatsappController,
+            decoration: const InputDecoration(
+              labelText: 'رقم الواتساب',
+              border: OutlineInputBorder(),
+              prefixIcon: Icon(Icons.phone_android),
+            ),
+            keyboardType: TextInputType.phone,
+          ),
+          
           // Business information section (only for merchants)
           if (user.isMerchant) ...[
             const SizedBox(height: 32),
@@ -222,6 +349,18 @@ class _UserEditFormState extends State<UserEditForm> {
             ),
           ],
           
+          // Additional information section
+          const SizedBox(height: 32),
+          
+          Text(
+            'معلومات إضافية',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          
+          const SizedBox(height: 16),
+          
           // Mediator information section (only for mediators)
           if (user.isMediator) ...[
             const SizedBox(height: 32),
@@ -235,21 +374,10 @@ class _UserEditFormState extends State<UserEditForm> {
             
             const SizedBox(height: 16),
             
-            // WhatsApp number field
-            TextFormField(
-              controller: widget.whatsappController,
-              decoration: const InputDecoration(
-                labelText: 'رقم الواتساب',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.phone_android),
-              ),
-              keyboardType: TextInputType.phone,
-              validator: (value) {
-                if (user.isMediator && (value == null || value.isEmpty)) {
-                  return 'الرجاء إدخال رقم الواتساب';
-                }
-                return null;
-              },
+            // Additional mediator fields can be added here
+            Text(
+              'معلومات الوسيط مهمة للتواصل بين المشترين والبائعين',
+              style: theme.textTheme.bodySmall,
             ),
           ],
           

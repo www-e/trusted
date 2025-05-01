@@ -42,4 +42,18 @@ class AdminFormatters {
         return Colors.grey;
     }
   }
+  
+  /// Gets the Arabic text for a user status
+  static String getStatusText(String status) {
+    switch (status) {
+      case AppConstants.statusActive:
+        return 'مفعل';
+      case AppConstants.statusPending:
+        return 'قيد المراجعة';
+      case AppConstants.statusRejected:
+        return 'مرفوض';
+      default:
+        return 'غير معروف';
+    }
+  }
 }

@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:trusted/features/admin/domain/models/blacklist_model.dart';
+import 'package:trusted/features/admin/domain/models/primitive_phone_block_model.dart';
 import 'package:trusted/features/auth/domain/models/user_model.dart';
 
 /// Service for caching and optimizing admin API calls
@@ -11,11 +13,23 @@ class AdminCacheService {
   /// Cache for approved users
   List<UserModel>? _approvedUsersCache;
   
+  /// Cache for blacklist entries
+  List<BlacklistModel>? _blacklistEntriesCache;
+  
+  /// Cache for primitive phone blocks
+  List<PrimitivePhoneBlockModel>? _primitivePhoneBlocksCache;
+  
   /// Timestamp for pending users cache
   DateTime? _pendingUsersCacheTime;
   
   /// Timestamp for approved users cache
   DateTime? _approvedUsersCacheTime;
+  
+  /// Timestamp for blacklist entries cache
+  DateTime? _blacklistEntriesCacheTime;
+  
+  /// Timestamp for primitive phone blocks cache
+  DateTime? _primitivePhoneBlocksCacheTime;
   
   /// Cache expiration duration (5 minutes)
   final Duration _cacheDuration = const Duration(minutes: 5);
@@ -60,12 +74,50 @@ class AdminCacheService {
     _approvedUsersCacheTime = DateTime.now();
   }
 
+  /// Get blacklist entries from cache if available and not expired
+  List<BlacklistModel>? getCachedBlacklistEntries() {
+    if (_blacklistEntriesCache != null && _blacklistEntriesCacheTime != null) {
+      final now = DateTime.now();
+      if (now.difference(_blacklistEntriesCacheTime!) < _cacheDuration) {
+        return _blacklistEntriesCache;
+      }
+    }
+    return null;
+  }
+
+  /// Get primitive phone blocks from cache if available and not expired
+  List<PrimitivePhoneBlockModel>? getCachedPrimitivePhoneBlocks() {
+    if (_primitivePhoneBlocksCache != null && _primitivePhoneBlocksCacheTime != null) {
+      final now = DateTime.now();
+      if (now.difference(_primitivePhoneBlocksCacheTime!) < _cacheDuration) {
+        return _primitivePhoneBlocksCache;
+      }
+    }
+    return null;
+  }
+
+  /// Update blacklist entries cache
+  void updateBlacklistEntriesCache(List<BlacklistModel> entries) {
+    _blacklistEntriesCache = entries;
+    _blacklistEntriesCacheTime = DateTime.now();
+  }
+
+  /// Update primitive phone blocks cache
+  void updatePrimitivePhoneBlocksCache(List<PrimitivePhoneBlockModel> blocks) {
+    _primitivePhoneBlocksCache = blocks;
+    _primitivePhoneBlocksCacheTime = DateTime.now();
+  }
+
   /// Clear all caches
   void clearCache() {
     _pendingUsersCache = null;
     _approvedUsersCache = null;
+    _blacklistEntriesCache = null;
+    _primitivePhoneBlocksCache = null;
     _pendingUsersCacheTime = null;
     _approvedUsersCacheTime = null;
+    _blacklistEntriesCacheTime = null;
+    _primitivePhoneBlocksCacheTime = null;
   }
 
   /// Invalidate pending users cache
@@ -78,6 +130,18 @@ class AdminCacheService {
   void invalidateApprovedUsersCache() {
     _approvedUsersCache = null;
     _approvedUsersCacheTime = null;
+  }
+  
+  /// Invalidate blacklist entries cache
+  void invalidateBlacklistEntriesCache() {
+    _blacklistEntriesCache = null;
+    _blacklistEntriesCacheTime = null;
+  }
+  
+  /// Invalidate primitive phone blocks cache
+  void invalidatePrimitivePhoneBlocksCache() {
+    _primitivePhoneBlocksCache = null;
+    _primitivePhoneBlocksCacheTime = null;
   }
 
   /// Execute a function with debounce

@@ -84,7 +84,21 @@ class AuthNotifier extends StateNotifier<AuthState> {
       // Check if this is the admin email
       final isAdmin = credential.user.email == AppConstants.adminEmail;
       
-      if (userExists) {
+      // Special handling for admin with specific UID
+      final isSpecificAdminUID = credential.user.id == 'b5d8fad3-d815-434d-bc90-3b0157317a20';
+      
+      if (isSpecificAdminUID && isAdmin) {
+        // For the specific admin UID, we'll always get the user data
+        // The repository has special handling for this UID
+        final userData = await _authRepository.getUserData(credential.user.id);
+        
+        state = state.copyWith(
+          isLoading: false,
+          user: userData,
+          userExists: true,
+          errorMessage: null,
+        );
+      } else if (userExists) {
         final userData = await _authRepository.getUserData(credential.user.id);
         
         // Always set user data if it exists, regardless of status

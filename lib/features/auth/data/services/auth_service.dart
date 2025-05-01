@@ -9,6 +9,8 @@ import 'package:logger/logger.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:trusted/core/config/env_config.dart';
 import 'package:trusted/core/constants/app_constants.dart';
+import 'package:trusted/features/admin/domain/models/blacklist_model.dart';
+import 'package:trusted/features/admin/domain/models/primitive_phone_block_model.dart';
 import 'package:trusted/features/auth/domain/models/enhanced_signup_form_model.dart';
 import 'package:trusted/features/auth/domain/models/user_model.dart';
 
@@ -106,6 +108,8 @@ class AuthService {
       if (response.session == null) {
         throw 'Failed to sign in with Google';
       }
+      
+      _logger.i('User signed in with Google: ${response.user?.id}, Email: ${response.user?.email}');
       
       return UserCredential(
         user: response.user!,
@@ -230,6 +234,40 @@ class AuthService {
   /// Get user data from Supabase
   Future<UserModel?> getUserData(String userId) async {
     try {
+      // Special handling for admin UID
+      if (userId == 'b5d8fad3-d815-434d-bc90-3b0157317a20') {
+        _logger.i('Admin user detected with specific UID');
+        // Check if this user exists in the database
+        final adminCheck = await _supabaseClient
+            .from('users')
+            .select()
+            .eq('id', userId)
+            .maybeSingle();
+            
+        // If admin user doesn't exist in the database, create it
+        if (adminCheck == null) {
+          _logger.i('Admin user not found in database, creating admin record');
+          try {
+            // Create admin user record
+            await _supabaseClient.from('users').insert({
+              'id': userId,
+              'email': AppConstants.adminEmail,
+              'name': 'Admin User',
+              'role': AppConstants.roleAdmin,
+              'phone_number': '+966000000000', // Placeholder
+              'nickname': 'Admin',
+              'country': 'SA',
+              'status': AppConstants.statusActive,
+              'created_at': DateTime.now().toIso8601String(),
+              'accepted_at': DateTime.now().toIso8601String(),
+            });
+            _logger.i('Admin user record created successfully');
+          } catch (e) {
+            _logger.e('Error creating admin user record: $e');
+          }
+        }
+      }
+      
       final response = await _supabaseClient
           .from('users')
           .select()
@@ -237,6 +275,28 @@ class AuthService {
           .maybeSingle();
       
       if (response == null) {
+        // Special case for admin email
+        if (userId == 'b5d8fad3-d815-434d-bc90-3b0157317a20') {
+          _logger.i('Creating admin user model for UID: $userId');
+          return UserModel(
+            id: userId,
+            email: AppConstants.adminEmail,
+            name: 'Admin User',
+            role: AppConstants.roleAdmin,
+            phoneNumber: '+966000000000', // Placeholder
+            secondaryPhoneNumber: null,
+            nickname: 'Admin',
+            country: 'SA',
+            status: AppConstants.statusActive,
+            businessName: null,
+            businessDescription: null,
+            workingSolo: null,
+            associateIds: null,
+            whatsappNumber: null,
+            createdAt: DateTime.now(),
+            acceptedAt: DateTime.now(),
+          );
+        }
         return null;
       }
       
@@ -417,6 +477,122 @@ class AuthService {
     } catch (e) {
       _logger.e('Error getting approved users: $e');
       return [];
+    }
+  }
+  
+  /// Get blacklist entries
+  Future<List<BlacklistModel>> getBlacklistEntries() async {
+    try {
+      final response = await _supabaseClient
+          .from('blacklist')
+          .select()
+          .order('created_at', ascending: false);
+      
+      return (response as List).map((json) => BlacklistModel.fromJson(json)).toList();
+    } catch (e) {
+      _logger.e('Error getting blacklist entries: $e');
+      return [];
+    }
+  }
+  
+  /// Get primitive phone blocks
+  Future<List<PrimitivePhoneBlockModel>> getPrimitivePhoneBlocks() async {
+    try {
+      final response = await _supabaseClient
+          .from('primitive_phone_block')
+          .select()
+          .order('created_at', ascending: false);
+      
+      return (response as List).map((json) => PrimitivePhoneBlockModel.fromJson(json)).toList();
+    } catch (e) {
+      _logger.e('Error getting primitive phone blocks: $e');
+      return [];
+    }
+  }
+  
+  /// Add to blacklist
+  Future<String> addToBlacklist({
+    String? userId,
+    String? email,
+    String? phoneNumber,
+    String? deviceId,
+    required String reason,
+  }) async {
+    try {
+      final response = await _supabaseClient
+          .rpc('add_to_blacklist', params: {
+            'p_user_id': userId,
+            'p_email': email,
+            'p_phone_number': phoneNumber,
+            'p_device_id': deviceId,
+            'p_reason': reason,
+          });
+      
+      return response as String;
+    } catch (e) {
+      _logger.e('Error adding to blacklist: $e');
+      throw 'Failed to add to blacklist: $e';
+    }
+  }
+  
+  /// Remove from blacklist
+  Future<bool> removeFromBlacklist(String blacklistId) async {
+    try {
+      final response = await _supabaseClient
+          .rpc('remove_from_blacklist', params: {
+            'p_blacklist_id': blacklistId,
+          });
+      
+      return response as bool;
+    } catch (e) {
+      _logger.e('Error removing from blacklist: $e');
+      return false;
+    }
+  }
+  
+  /// Primitive block phone
+  Future<bool> primitiveBlockPhone(String phoneNumber, String reason) async {
+    try {
+      final response = await _supabaseClient
+          .rpc('primitive_block_phone', params: {
+            'p_phone_number': phoneNumber,
+            'p_reason': reason,
+          });
+      
+      return response as bool;
+    } catch (e) {
+      _logger.e('Error blocking phone number: $e');
+      return false;
+    }
+  }
+  
+  /// Primitive unblock phone
+  Future<bool> primitiveUnblockPhone(String phoneNumber) async {
+    try {
+      final response = await _supabaseClient
+          .rpc('primitive_unblock_phone', params: {
+            'p_phone_number': phoneNumber,
+          });
+      
+      return response as bool;
+    } catch (e) {
+      _logger.e('Error unblocking phone number: $e');
+      return false;
+    }
+  }
+  
+  /// Check if phone is primitive blocked
+  Future<bool> isPrimitiveBlocked(String phoneNumber) async {
+    try {
+      final response = await _supabaseClient
+          .rpc('is_primitive_blocked', params: {
+            'p_phone_number': phoneNumber,
+          });
+      
+      return response as bool;
+    } catch (e) {
+      _logger.e('Error checking if phone is blocked: $e');
+      return false;
     }
   }
 }

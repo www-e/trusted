@@ -1,5 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:logger/logger.dart';
 import 'package:trusted/core/constants/app_constants.dart';
+import 'package:trusted/features/admin/domain/models/blacklist_model.dart';
+import 'package:trusted/features/admin/domain/models/primitive_phone_block_model.dart';
 import 'package:trusted/features/admin/domain/services/admin_cache_service.dart';
 import 'package:trusted/features/auth/domain/models/user_model.dart';
 import 'package:trusted/features/auth/domain/repositories/auth_repository.dart';
@@ -20,6 +23,18 @@ class AdminState {
   
   /// Count of users approved today
   final int approvedTodayCount;
+  
+  /// List of blacklist entries
+  final List<BlacklistModel> blacklistEntries;
+  
+  /// List of primitive phone blocks
+  final List<PrimitivePhoneBlockModel> primitivePhoneBlocks;
+  
+  /// Search query for filtering
+  final String searchQuery;
+  
+  /// Is loading blacklist data
+  final bool isLoadingBlacklist;
 
   /// Constructor
   const AdminState({
@@ -28,6 +43,10 @@ class AdminState {
     this.pendingUsers = const [],
     this.approvedUsers = const [],
     this.approvedTodayCount = 0,
+    this.blacklistEntries = const [],
+    this.primitivePhoneBlocks = const [],
+    this.searchQuery = '',
+    this.isLoadingBlacklist = false,
   });
 
   /// Creates a copy of this AdminState with the given fields replaced
@@ -37,6 +56,10 @@ class AdminState {
     List<UserModel>? pendingUsers,
     List<UserModel>? approvedUsers,
     int? approvedTodayCount,
+    List<BlacklistModel>? blacklistEntries,
+    List<PrimitivePhoneBlockModel>? primitivePhoneBlocks,
+    String? searchQuery,
+    bool? isLoadingBlacklist,
   }) {
     return AdminState(
       isLoading: isLoading ?? this.isLoading,
@@ -44,7 +67,40 @@ class AdminState {
       pendingUsers: pendingUsers ?? this.pendingUsers,
       approvedUsers: approvedUsers ?? this.approvedUsers,
       approvedTodayCount: approvedTodayCount ?? this.approvedTodayCount,
+      blacklistEntries: blacklistEntries ?? this.blacklistEntries,
+      primitivePhoneBlocks: primitivePhoneBlocks ?? this.primitivePhoneBlocks,
+      searchQuery: searchQuery ?? this.searchQuery,
+      isLoadingBlacklist: isLoadingBlacklist ?? this.isLoadingBlacklist,
     );
+  }
+  
+  /// Get filtered blacklist entries based on search query
+  List<BlacklistModel> get filteredBlacklistEntries {
+    if (searchQuery.isEmpty) {
+      return blacklistEntries;
+    }
+    
+    final query = searchQuery.toLowerCase();
+    return blacklistEntries.where((entry) {
+      return (entry.userId != null && entry.userId!.toLowerCase().contains(query)) ||
+             (entry.email != null && entry.email!.toLowerCase().contains(query)) ||
+             (entry.phoneNumber != null && entry.phoneNumber!.toLowerCase().contains(query)) ||
+             (entry.deviceId != null && entry.deviceId!.toLowerCase().contains(query)) ||
+             entry.reason.toLowerCase().contains(query);
+    }).toList();
+  }
+  
+  /// Get filtered primitive phone blocks based on search query
+  List<PrimitivePhoneBlockModel> get filteredPrimitivePhoneBlocks {
+    if (searchQuery.isEmpty) {
+      return primitivePhoneBlocks;
+    }
+    
+    final query = searchQuery.toLowerCase();
+    return primitivePhoneBlocks.where((block) {
+      return block.phoneNumber.toLowerCase().contains(query) ||
+             block.reason.toLowerCase().contains(query);
+    }).toList();
   }
 }
 
@@ -55,6 +111,9 @@ class AdminNotifier extends StateNotifier<AdminState> {
   
   /// Cache service
   final AdminCacheService _cacheService;
+  
+  /// Logger instance
+  final _logger = Logger();
 
   /// Constructor
   AdminNotifier({
@@ -261,6 +320,9 @@ class AdminNotifier extends StateNotifier<AdminState> {
       await loadPendingUsers();
       await loadApprovedUsers();
       
+      // Load blacklist data
+      await loadBlacklistData();
+      
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
@@ -318,6 +380,152 @@ class AdminNotifier extends StateNotifier<AdminState> {
       );
       return false;
     }
+  }
+  
+  /// Load blacklist data
+  Future<void> loadBlacklistData() async {
+    try {
+      state = state.copyWith(isLoadingBlacklist: true, errorMessage: null);
+      
+      // Try to get from cache first
+      final cachedBlacklist = _cacheService.getCachedBlacklistEntries();
+      final cachedPhoneBlocks = _cacheService.getCachedPrimitivePhoneBlocks();
+      
+      if ((cachedBlacklist?.isNotEmpty ?? false) || (cachedPhoneBlocks?.isNotEmpty ?? false)) {
+        state = state.copyWith(
+          blacklistEntries: cachedBlacklist,
+          primitivePhoneBlocks: cachedPhoneBlocks,
+          isLoadingBlacklist: false,
+        );
+      }
+      
+      // Load blacklist entries
+      final blacklistEntries = await _authRepository.getBlacklistEntries();
+      
+      // Load primitive phone blocks
+      final primitivePhoneBlocks = await _authRepository.getPrimitivePhoneBlocks();
+      
+      // Update cache
+      _cacheService.updateBlacklistEntriesCache(blacklistEntries);
+      _cacheService.updatePrimitivePhoneBlocksCache(primitivePhoneBlocks);
+      
+      state = state.copyWith(
+        blacklistEntries: blacklistEntries,
+        primitivePhoneBlocks: primitivePhoneBlocks,
+        isLoadingBlacklist: false,
+      );
+    } catch (e) {
+      _logger.e('Error loading blacklist data: $e');
+      state = state.copyWith(
+        isLoadingBlacklist: false,
+        errorMessage: e.toString(),
+      );
+    }
+  }
+  
+  /// Block a user and their device
+  Future<void> blockUser(String userId, String reason) async {
+    try {
+      state = state.copyWith(isLoading: true, errorMessage: null);
+      
+      // Get user data to get phone number
+      final userData = await _authRepository.getUserData(userId);
+      
+      if (userData == null) {
+        throw 'User data not found';
+      }
+      
+      // Add to blacklist
+      await _authRepository.addToBlacklist(
+        userId: userId,
+        email: userData.email,
+        phoneNumber: userData.phoneNumber,
+        reason: reason,
+      );
+      
+      // Refresh blacklist data
+      await loadBlacklistData();
+      
+      // Refresh user lists
+      await loadPendingUsers();
+      await loadApprovedUsers();
+      
+      state = state.copyWith(isLoading: false);
+    } catch (e) {
+      _logger.e('Error blocking user: $e');
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: e.toString(),
+      );
+    }
+  }
+  
+  /// Block a phone number
+  Future<void> blockPhoneNumber(String phoneNumber, String reason) async {
+    try {
+      state = state.copyWith(isLoading: true, errorMessage: null);
+      
+      // Add to primitive phone block
+      await _authRepository.primitiveBlockPhone(phoneNumber, reason);
+      
+      // Refresh blacklist data
+      await loadBlacklistData();
+      
+      state = state.copyWith(isLoading: false);
+    } catch (e) {
+      _logger.e('Error blocking phone number: $e');
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: e.toString(),
+      );
+    }
+  }
+  
+  /// Unblock a phone number
+  Future<void> unblockPhoneNumber(String phoneNumber) async {
+    try {
+      state = state.copyWith(isLoading: true, errorMessage: null);
+      
+      // Remove from primitive phone block
+      await _authRepository.primitiveUnblockPhone(phoneNumber);
+      
+      // Refresh blacklist data
+      await loadBlacklistData();
+      
+      state = state.copyWith(isLoading: false);
+    } catch (e) {
+      _logger.e('Error unblocking phone number: $e');
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: e.toString(),
+      );
+    }
+  }
+  
+  /// Remove from blacklist
+  Future<void> removeFromBlacklist(String blacklistId) async {
+    try {
+      state = state.copyWith(isLoading: true, errorMessage: null);
+      
+      // Remove from blacklist
+      await _authRepository.removeFromBlacklist(blacklistId);
+      
+      // Refresh blacklist data
+      await loadBlacklistData();
+      
+      state = state.copyWith(isLoading: false);
+    } catch (e) {
+      _logger.e('Error removing from blacklist: $e');
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: e.toString(),
+      );
+    }
+  }
+  
+  /// Update search query
+  void updateSearchQuery(String query) {
+    state = state.copyWith(searchQuery: query);
   }
 }
 
